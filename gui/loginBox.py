@@ -45,7 +45,7 @@ class LoginBox(QtGui.QWidget):
     def onLoginButton(self):
         
         if login.checkLogin(self.userTextBox.text(), self.passwordTextBox.text()):
-            self.afterLogin()
+            self.afterLogin(self.userTextBox.text(), self.passwordTextBox.text())
             self.hide()
         else:
             self.message.setText('Sorry, your username or password was incorrect.')

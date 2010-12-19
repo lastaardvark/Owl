@@ -26,7 +26,3 @@ class GatherData:
         
         gatherEmail.getEmail(self.username, account['intId'], account['strEmailAddress'], account['strUsername'], password, \
             server=account['strServer'], port=account['intPort'], encryptUsing=encryptionPassword)
-        
-g = GatherData('paul', 'drowndrab59')
-
-g.gatherImap()
