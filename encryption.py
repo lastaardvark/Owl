@@ -35,4 +35,3 @@ def encrypt(password, string):
 def decrypt(password, string):
     cipher = getCipherFromPassword(password)
     return DecodeAES(cipher, string)
-
