@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         QMainWindow.__init__(self)
-        self.resize(900, 700)
+        self.resize(1100, 800)
         self.setWindowTitle('Owl')
                 
         self.status = self.statusBar()
@@ -56,13 +56,14 @@ class MainWindow(QMainWindow):
         grid = QGridLayout()
         grid.setSpacing(10)
         
+        grid.setColumnStretch(2, 2)
         grid.addWidget(userLabel, 0, 0)
         grid.addWidget(messageLabel, 0, 2)
         
-        grid.addWidget(self.userList.getLineEdit(), 1, 0, 1, 2)
+        grid.addWidget(self.userList.getLineEdit(), 1, 0)
         grid.addWidget(self.messageList.getLineEdit(), 1, 2)
         
-        grid.addWidget(self.userList.getListBox(), 2, 0, 1, 2)
+        grid.addWidget(self.userList.getListBox(), 2, 0)
         grid.addWidget(self.messageList.getListBox(), 2, 2)
         
         grid.addWidget(frame, 0, 1, 3, 1)
@@ -80,7 +81,7 @@ class MainWindow(QMainWindow):
         contacts.sort()        
         self.userList.replaceList(contacts)
         
-        messages = map(message.getName, message.getMessages(self.username, 50))      
+        messages = map(message.getName, message.getMessages(self.username, 5000))      
         self.messageList.replaceList(messages)
     
     def refetchAll(self):

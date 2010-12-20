@@ -20,7 +20,7 @@ def _stripTags(html):
         return re.sub("<\/?[^>]*>", "", html)
 
 def getEmail(user, accountId, emailAddress, username, password, server='imap.gmail.com', port=993, encryptUsing=None):
-    """
+    
     sql = "DELETE FROM mRecipient"   
     database.execute(sql).close()
     
@@ -35,10 +35,18 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
     
     sql = "DELETE FROM cContact"   
     database.execute(sql).close()
-    """
+    
+    sql = "INSERT INTO cContact (strUser, bitIsMe, strForename, strSurname) VALUES ('paul', 1, 'Paul', 'Roberts')"
+    cursor = database.execute(sql)
+    ourContactId = cursor.lastrowid
+    cursor.close()
+    
+    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'proberts84@gmail.com', 1, 'Paul Roberts')"
+    cursor = database.execute(sql, ourContactId).close()
+        
     server = imapEmail(emailAddress, server, port)
     server.login(username, password)
-    ids = server.getMailIds()[:50]
+    ids = server.getMailIds()
     
     for id in ids:
 
@@ -79,12 +87,14 @@ def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, s
     
     database.execute(sql, (messageId, remoteId, subject, body, bodyNoHtml, raw)).close()
     
+    print to
     for alias, address in email.Utils.getaddresses(to):
         recipient = contact.addContact(user, 'email', address, alias)
         
-        sql = """
-            REPLACE INTO mRecipient (intMessageId, intContactId)
-            VALUES (%s, %s)"""
-        
-        database.execute(sql, (messageId, recipient)).close()
+        if recipient:
+            sql = """
+                REPLACE INTO mRecipient (intMessageId, intContactId)
+                VALUES (%s, %s)"""
+            
+            database.execute(sql, (messageId, recipient)).close()
     

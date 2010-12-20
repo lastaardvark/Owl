@@ -2,6 +2,10 @@ import database
 
 def addContact(user, addressType, address, alias=None):
     
+    if not address:
+        print 'Address is empty'
+        return None
+    
     sql = """
         SELECT c.intId AS intContactId
         FROM cContact c

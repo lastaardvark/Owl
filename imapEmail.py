@@ -77,10 +77,10 @@ class imapEmail(object):
                 msg = email.message_from_string(responsePart[1])
                 
                 rtn = {}
-                rtn['subject'] = email.header.decode_header(msg['subject'])[0]
+                rtn['subject'] = email.header.decode_header(msg['subject'])[0][0]
                 
                 rtn['date'] = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate(msg['date'])))
-                rtn['from'] = msg['from']
+                rtn['from'] = email.header.decode_header(msg['from'])[0][0]
                 rtn['to'] = msg.get_all('to', []) + msg.get_all('cc', []) + msg.get_all('bcc', [])
                 rtn['to'] += msg.get_all('resent-to', []) + msg.get_all('resent-cc', [])
                 
@@ -93,6 +93,7 @@ class imapEmail(object):
                     if encodingGuess and encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':
                         rtn['body'] = rtn['body'].decode(encodingGuess)
                 
+                rtn['from'] = safe_unicode(rtn['from'])
                 rtn['body'] = safe_unicode(rtn['body'])
                 rtn['subject'] = safe_unicode(rtn['subject'])
                 
