@@ -3,7 +3,7 @@ from PyQt4 import QtGui, QtCore
 
 sys.path.append(os.path.join(os.getcwd()))
 
-import login
+import login, settings
 
 class LoginBox(QtGui.QWidget):
         
@@ -20,6 +20,9 @@ class LoginBox(QtGui.QWidget):
         self.passwordTextBox = QtGui.QLineEdit()
         self.passwordTextBox.setEchoMode(QtGui.QLineEdit.Password)
         self.message = QtGui.QLabel('')
+        
+        self.userTextBox.setText(settings.getSettings()['tempLogin'])
+        self.passwordTextBox.setText(settings.getSettings()['tempPassword'])
         
         okButton = QtGui.QPushButton('OK')
         cancelButton = QtGui.QPushButton('Cancel')
@@ -43,9 +46,10 @@ class LoginBox(QtGui.QWidget):
         self.connect(self.passwordTextBox, QtCore.SIGNAL('returnPressed()'), self.onLoginButton)
     
     def onLoginButton(self):
-        
-        if login.checkLogin(self.userTextBox.text(), self.passwordTextBox.text()):
-            self.afterLogin(self.userTextBox.text(), self.passwordTextBox.text())
+        user = str(self.userTextBox.text())
+        password = str(self.passwordTextBox.text())
+        if login.checkLogin(user, password):
+            self.afterLogin(user, password)
             self.hide()
         else:
             self.message.setText('Sorry, your username or password was incorrect.')

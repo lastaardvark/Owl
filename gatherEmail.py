@@ -38,7 +38,7 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
     
     server = imapEmail(emailAddress, server, port)
     server.login(username, password)
-    ids = server.getMailIds()[:10]
+    ids = server.getMailIds()[:50]
     
     for id in ids:
 
@@ -46,18 +46,20 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
 
         email = server.getMailFromId(id)
         
-        strippedBody = _stripTags(email['body'])
         body = email['body']
+        strippedBody = _stripTags(body)
+        raw = email['raw']
         
         if encryptUsing:
             body = encryption.encrypt(encryptUsing, body)
             strippedBody = encryption.encrypt(encryptUsing, strippedBody)
+            raw = encryption.encrypt(encryptUsing, raw)
         
-        addEmailToDatabase(user, emailAddress, accountId, id, email['date'], email['subject'], email['from'], email['to'], body, strippedBody)
+        addEmailToDatabase(user, emailAddress, accountId, id, email['date'], email['subject'], email['from'], email['to'], body, strippedBody, raw)
 
     server.logout()
 
-def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, sender, to, body, bodyNoHtml):
+def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, sender, to, body, bodyNoHtml, raw):
     
     alias, address = email.Utils.parseaddr(sender)
     sender = contact.addContact(user, 'email', address, alias)
@@ -70,12 +72,12 @@ def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, s
     
     messageId = cursor.lastrowid
     cursor.close()
-        
-    sql = """
-        INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strBodyNoHtml)
-        VALUES (%s, %s, %s, %s, %s)"""
     
-    database.execute(sql, (messageId, remoteId, subject, body, bodyNoHtml))
+    sql = """
+        INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strBodyNoHtml, strRaw)
+        VALUES (%s, %s, %s, %s, %s, %s)"""
+    
+    database.execute(sql, (messageId, remoteId, subject, body, bodyNoHtml, raw)).close()
     
     for alias, address in email.Utils.getaddresses(to):
         recipient = contact.addContact(user, 'email', address, alias)

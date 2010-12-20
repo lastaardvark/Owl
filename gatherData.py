@@ -7,7 +7,7 @@ class GatherData:
         self.username = username
         self.password = password
         
-        if not login.validate():
+        if not login.checkLogin(self.username, self.password):
             raise NotAuthenticatedException('The username or password was not valid')
     
     def gatherImap(self):
@@ -20,7 +20,7 @@ class GatherData:
         
         account = database.executeOneToDictionary(sql, self.username)
         
-        password = encryption.decrypt(settings.getSettings()['userPasswordEncryptionSalt'] + self.password, account['strPassword'])
+        password = encryption.decrypt(settings.getSettings()['userPasswordEncryptionSalt'] + self.password, str(account['strPassword']))
         
         encryptionPassword = settings.getSettings()['userDataEncryptionSalt'] + self.password
         

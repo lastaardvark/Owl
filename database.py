@@ -34,6 +34,7 @@ def execute(sql, parameters = None):
             cursor.execute(sql, parameters)
             done = True
         except MySQLdb.OperationalError as err:
+            print err
             tries += 1
             try:
                 cursor.close()
@@ -43,6 +44,7 @@ def execute(sql, parameters = None):
             _Conn = None
             cursor = getCursor()
         except MySQLdb.ProgrammingError as err:
+            print err
             tries += 1
             try:
                 cursor.close()

@@ -1,5 +1,7 @@
-import imaplib, datetime, email, time
+import imaplib, datetime, email, re, time
 from HTMLParser import HTMLParser
+import base64
+import chardet
 
 class HtmlStripper(HTMLParser):
     def __init__(self):
@@ -14,6 +16,15 @@ def strip_tags(html):
     s = MLStripper()
     s.feed(html)
     return s.get_data()
+    
+def safe_unicode(obj, *args):
+    """ return the unicode representation of obj """
+    try:
+        return unicode(obj, *args)
+    except UnicodeDecodeError:
+        # obj is byte string
+        ascii_text = str(obj).encode('string_escape')
+        return unicode(ascii_text)
 
 class imapEmail(object):
     def __init__(self, emailAddress, server='imap.gmail.com', port=993):
@@ -21,7 +32,6 @@ class imapEmail(object):
         self.port = int(port)
         self.imap = None
         self.emailAddress = str(emailAddress)
-        self.mailboxes = []
 
     def login(self, username, password):
         self.imap = imaplib.IMAP4_SSL(self.server, self.port)
@@ -29,17 +39,36 @@ class imapEmail(object):
         return rc
 
     def fetchMailboxes(self):
+        self.imap.select(readonly=1)
         _, response = self.imap.list()
+        mailboxes = []
         for item in response:
-            self.mailboxes.append(item.split()[-1])
-        return rc
-
-    def getMailIds(self, folder='Inbox'):
-        self.imap.select(folder, readonly=1)
-        _, response = self.imap.search(None, 'ALL')
-        ids = [emailId for emailId in response[0].split()]
+            if not re.search('spam|draft|trash|deleted|bin', item, re.IGNORECASE):
+                mailboxes.append(item.split()[-1])
+        
+        return mailboxes
+        
+    def getMailIdsFromFolder(self, folder='Inbox'):
+        
+        success, _ = self.imap.select(folder, readonly=1)
+        
+        if success == 'OK':
+            _, response = self.imap.search(None, 'ALL')
+            ids = [int(emailId) for emailId in response[0].split()]
+        else:
+            ids = []
+        
         return ids
-
+    
+    def getMailIds(self):
+        ids = []
+        for folder in self.fetchMailboxes():
+            ids += self.getMailIdsFromFolder(folder)
+        
+        ids = list(set(ids))
+        ids.sort(reverse=True)
+        return [3754] #ids
+        
     def getMailFromId(self, id):
         self.imap.select()
         _, response = self.imap.fetch(id, '(RFC822)')
@@ -54,24 +83,30 @@ class imapEmail(object):
                 rtn['to'] = msg.get_all('to', []) + msg.get_all('cc', []) + msg.get_all('bcc', [])
                 rtn['to'] += msg.get_all('resent-to', []) + msg.get_all('resent-cc', [])
                 
-                payload = msg.get_payload()
-                rtn['body'] = self._extractBody(payload)
-                rtn['body'] = rtn['body'].replace('=\r\n', '')
+                rtn['body'] = self._extractBody(msg, True)
                 
-                if rtn['body'].count('=0A') > 5:
-                    rtn['body'] = rtn['body'].replace('=0A', '')
-                    
-                if rtn['body'].count('=3D') > 5:
-                    rtn['body'] = rtn['body'].replace('=3D', '=')
+                rtn['raw'] = safe_unicode(self._extractBody(msg, False))
                                 
+                if isinstance(rtn['body'], str):
+                    encodingGuess = chardet.detect(rtn['body'])['encoding']
+                    print encodingGuess
+                    if encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':
+                        rtn['body'] = rtn['body'].decode(encodingGuess)
+                
+                rtn['body'] = safe_unicode(rtn['body'])
+                rtn['subject'] = safe_unicode(rtn['subject'])
+                
                 return rtn
                 
-    def _extractBody(self, payload):
-        if isinstance(payload, str):
-            return payload
+    def _extractBody(self, msg, decode):        
+        if msg.is_multipart():
+            rtn = ""
+            for subMessage in msg.get_payload():
+                rtn += self._extractBody(subMessage, decode)
+            return rtn
         else:
-            return '/n'.join([self._extractBody(part.get_payload()) for part in payload])
-    
+            return msg.get_payload(decode=decode)
+               
     def _stripHtml(self, text):
         stripper = HtmlStripper()
         stripper.feed(text)
