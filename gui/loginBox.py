@@ -1,8 +1,6 @@
 import os, sys
 from PyQt4 import QtGui, QtCore
 
-sys.path.append(os.path.join(os.getcwd()))
-
 import login, settings
 
 class LoginBox(QtGui.QWidget):

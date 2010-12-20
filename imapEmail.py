@@ -1,4 +1,4 @@
-import imaplib, datetime, email, re, time
+import imaplib, datetime, email, email.header, re, time
 from HTMLParser import HTMLParser
 import base64
 import chardet
@@ -67,7 +67,7 @@ class imapEmail(object):
         
         ids = list(set(ids))
         ids.sort(reverse=True)
-        return [3754] #ids
+        return ids
         
     def getMailFromId(self, id):
         self.imap.select()
@@ -77,20 +77,20 @@ class imapEmail(object):
                 msg = email.message_from_string(responsePart[1])
                 
                 rtn = {}
-                rtn['subject'] = msg['subject']
+                rtn['subject'] = email.header.decode_header(msg['subject'])[0]
+                
                 rtn['date'] = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate(msg['date'])))
                 rtn['from'] = msg['from']
                 rtn['to'] = msg.get_all('to', []) + msg.get_all('cc', []) + msg.get_all('bcc', [])
                 rtn['to'] += msg.get_all('resent-to', []) + msg.get_all('resent-cc', [])
                 
-                rtn['body'] = self._extractBody(msg, True)
-                
-                rtn['raw'] = safe_unicode(self._extractBody(msg, False))
+                rtn['body'] = self._extractBody(msg, True)                
+                rtn['raw'] = safe_unicode(msg.as_string())
                                 
                 if isinstance(rtn['body'], str):
                     encodingGuess = chardet.detect(rtn['body'])['encoding']
                     print encodingGuess
-                    if encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':
+                    if encodingGuess and encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':
                         rtn['body'] = rtn['body'].decode(encodingGuess)
                 
                 rtn['body'] = safe_unicode(rtn['body'])
@@ -100,12 +100,16 @@ class imapEmail(object):
                 
     def _extractBody(self, msg, decode):        
         if msg.is_multipart():
-            rtn = ""
+            rtn = ''
             for subMessage in msg.get_payload():
-                rtn += self._extractBody(subMessage, decode)
+                if not subMessage.get_filename(): # Not an attachment
+                    rtn += self._extractBody(subMessage, decode)
             return rtn
         else:
-            return msg.get_payload(decode=decode)
+            if msg.get_filename(): # Not an attachment
+                return ''
+            else:
+                return msg.get_payload(decode=decode)
                
     def _stripHtml(self, text):
         stripper = HtmlStripper()

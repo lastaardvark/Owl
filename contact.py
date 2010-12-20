@@ -24,11 +24,72 @@ def addContact(user, addressType, address, alias=None):
         cursor.close()
         
         sql = """
-            INSERT INTO cAddress (intContactId, enmAddressType, strAddress, strAlias)
-            VALUES (%s, %s, %s, %s)"""
+            INSERT INTO cAddress (intContactId, enmAddressType, strAddress, strAlias, bitBestAddress)
+            VALUES (%s, %s, %s, %s, 1)"""
         
         database.execute(sql, (contactId, addressType, address, alias)).close()
     else:
         contactId = result['intContactId']
         
     return contactId
+    
+def getContacts(user):
+    
+    sql = """
+        SELECT 
+            c.intId AS intContactId,
+            c.strForename,
+            c.strSurname,
+            a.strAddress AS strBestAddress,
+            a.strAlias AS strBestAlias
+        FROM cContact c
+            INNER JOIN cAddress a ON c.intId = a.intContactId
+        WHERE c.strUser = %s
+            AND c.bitIsMe = 0
+            AND a.bitBestAddress = 1"""
+    
+    return database.executeManyToDictionary(sql, user)
+    
+def getName(contact):
+    
+    if contact['strForename'] and contact['strSurname']:
+        return contact['strForename'] + ' ' + contact['strSurname']
+    
+    elif contact['strSurname']:
+        return '? ' + contact['strSurname']
+        
+    elif contact['strForename']:
+        return contact['strForename'] + ' ?'
+    
+    elif contact['strBestAlias'] and contact['strBestAddress']:
+        return ' (' + contact['strBestAlias'] + ', ' + contact['strBestAddress'] + ')'
+        
+    elif contact['strBestAlias']:
+        return ' (' + contact['strBestAlias'] + ')'
+        
+    elif contact['strBestAddress']:
+        return ' (' + contact['strBestAddress'] + ')'
+        
+    else:
+        return '?'
+        
+def getShortName(contact):
+    
+    if contact['strForename'] and contact['strSurname']:
+        return contact['strForename'] + ' ' + contact['strSurname']
+    
+    elif contact['strSurname']:
+        return '? ' + contact['strSurname']
+        
+    elif contact['strForename']:
+        return contact['strForename'] + ' ?'
+        
+    elif contact['strBestAlias']:
+        return contact['strBestAlias']
+                
+    elif contact['strBestAddress']:
+        return contact['strBestAddress']
+        
+    else:
+        return '?'
+        
