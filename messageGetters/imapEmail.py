@@ -1,5 +1,7 @@
-import imaplib, datetime, email, email.header, re, time
-import base64
+import base64, datetime, email, email.header, imaplib, os, re, sys, time
+
+sys.path.append(os.path.join(os.getcwd()))
+
 import stringFunctions
 
 class imapEmail(object):

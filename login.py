@@ -2,7 +2,7 @@ import database, encryption, settings
 
 def checkLogin(username, password):
     
-    encryptedPassword = encryption.encrypt(settings.getSettings()['loginPasswordEncryptionKey'], password)
+    encryptedPassword = encryption.encrypt(settings.settings['loginPasswordEncryptionKey'], password)
     
     sql = """
         SELECT 1 FROM pUser

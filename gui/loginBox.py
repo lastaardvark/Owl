@@ -19,8 +19,8 @@ class LoginBox(QtGui.QWidget):
         self.passwordTextBox.setEchoMode(QtGui.QLineEdit.Password)
         self.message = QtGui.QLabel('')
         
-        self.userTextBox.setText(settings.getSettings()['tempLogin'])
-        self.passwordTextBox.setText(settings.getSettings()['tempPassword'])
+        self.userTextBox.setText(settings.settings['tempLogin'])
+        self.passwordTextBox.setText(settings.settings['tempPassword'])
         
         okButton = QtGui.QPushButton('OK')
         cancelButton = QtGui.QPushButton('Cancel')

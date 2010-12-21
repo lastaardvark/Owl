@@ -2,8 +2,10 @@ import os, sys
 
 sys.path.append(os.path.join(os.getcwd()))
 
-from PyQt4.QtGui import QAction, QApplication, QGridLayout, QFrame, QIcon, QLabel, QLineEdit, QListView, QMainWindow, QWidget
-from PyQt4.QtCore import SIGNAL, SLOT
+from PyQt4.QtGui import QAction, QApplication, QGridLayout, QFrame, QIcon
+from PyQt4.QtGui import QLabel, QLineEdit, QListView, QMainWindow, QProgressDialog, QWidget
+from PyQt4.QtCore import Qt, SIGNAL, SLOT
+from threading import Thread
 from loginBox import LoginBox
 from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
@@ -84,11 +86,40 @@ class MainWindow(QMainWindow):
         messages = map(message.getName, message.getMessages(self.username, 5000))      
         self.messageList.replaceList(messages)
     
-    def refetchAll(self):
-        gatherData = GatherData(self.username, self.password)
-        gatherData.gatherImap()
+    def createProgressBar(self, maximum):
+        self.progress.setMaximum(maximum)
+        self.progress.setLabelText('Downloading email 1 of ' + str(maximum))
+    
+    def updateProgressBar(self, messagesProcessed):
+        self.progress.setValue(messagesProcessed)
+        self.progress.setLabelText('Downloading email %s of %s...' % (str(messagesProcessed + 1), str(self.progress.maximum())))
         
-        self.refreshLists()
+    def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
+        self.emit(SIGNAL('updateProgressBar(PyQt_PyObject)'), messagesProcessed)
+    
+    def fetchMessagesThread(self):
+        gatherData = GatherData(self.username, self.password)
+        
+        newMessageCount = gatherData.countNewMessages()
+        self.emit(SIGNAL('receivedMessageCount(PyQt_PyObject)'), newMessageCount)
+        
+        gatherData.getNewMessages(self.receiveBroadcastOfDownloadProgress)
+        
+        self.emit(SIGNAL('refreshLists()'))
+        
+    def refetchAll(self):
+        self.progress = QProgressDialog('Looking for emails...', 'Cancel', 0, 10)
+        self.progress.resize(400, 50)
+        self.progress.show()
+        
+        thread = Thread(None, self.fetchMessagesThread, 'Fetch messages')
+        
+        self.connect(self, SIGNAL('receivedMessageCount(PyQt_PyObject)'), self.createProgressBar)
+        self.connect(self, SIGNAL('updateProgressBar(PyQt_PyObject)'), self.updateProgressBar)
+        self.connect(self, SIGNAL('refreshLists()'), self.refreshLists)
+        
+        thread.start()
+                
 
 app = QApplication(sys.argv)
 

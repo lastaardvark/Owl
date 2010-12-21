@@ -11,7 +11,7 @@ def getCursor():
     MySQLdb.use_unicode = True
     
     if '_Conn' not in local.__dict__ or local._Conn == None:
-        dbSettings = settings.getSettings()
+        dbSettings = settings.settings
         local._Conn = MySQLdb.connect( host = dbSettings['server'], user = dbSettings['user'], passwd = dbSettings['password'],  db = dbSettings['database'], charset="utf8" )
 
     return local._Conn.cursor()
