@@ -20,7 +20,7 @@ def _stripTags(html):
         return re.sub("<\/?[^>]*>", "", html)
 
 def getEmail(user, accountId, emailAddress, username, password, server='imap.gmail.com', port=993, encryptUsing=None):
-    
+    """
     sql = "DELETE FROM mRecipient"   
     database.execute(sql).close()
     
@@ -42,8 +42,8 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
     cursor.close()
     
     sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'proberts84@gmail.com', 1, 'Paul Roberts')"
-    cursor = database.execute(sql, ourContactId).close()
-        
+    database.execute(sql, ourContactId).close()
+        """
     server = imapEmail(emailAddress, server, port)
     server.login(username, password)
     ids = server.getMailIds()
@@ -76,8 +76,7 @@ def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, s
         INSERT INTO mMessage (intAccountId, datHappened, intSenderId, strSummary)
         VALUES (%s, %s, %s, %s)"""
     
-    cursor = database.execute(sql, (accountId, date, sender, subject))
-    
+    cursor = database.execute(sql, (accountId, date, sender, subject))    
     messageId = cursor.lastrowid
     cursor.close()
     
