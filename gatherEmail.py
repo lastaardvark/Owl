@@ -1,23 +1,6 @@
 from imapEmail import imapEmail
 import email, HTMLParser, re
-import contact, database, encryption, settings
-
-class HtmlStripper(HTMLParser.HTMLParser):
-    def __init__(self):
-        self.reset()
-        self.fed = []
-    def handle_data(self, d):
-        self.fed.append(d)
-    def get_data(self):
-        return ''.join(self.fed)
-
-def _stripTags(html):
-    s = HtmlStripper()
-    try:
-        s.feed(html)
-        return s.get_data()
-    except HTMLParser.HTMLParseError:
-        return re.sub("<\/?[^>]*>", "", html)
+import contact, database, encryption, settings, stringFunctions
 
 def getEmail(user, accountId, emailAddress, username, password, server='imap.gmail.com', port=993, encryptUsing=None):
     
@@ -55,7 +38,7 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
         email = server.getMailFromId(id)
         
         body = email['body']
-        strippedBody = _stripTags(body)
+        strippedBody = stringFunctions.stripTags(body)
         raw = email['raw']
         
         if encryptUsing:

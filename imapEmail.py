@@ -1,30 +1,6 @@
 import imaplib, datetime, email, email.header, re, time
-from HTMLParser import HTMLParser
 import base64
-import chardet
-
-class HtmlStripper(HTMLParser):
-    def __init__(self):
-        self.reset()
-        self.fed = []
-    def handle_data(self, d):
-        self.fed.append(d)
-    def get_data(self):
-        return ''.join(self.fed)
-
-def strip_tags(html):
-    s = MLStripper()
-    s.feed(html)
-    return s.get_data()
-    
-def safe_unicode(obj, *args):
-    """ return the unicode representation of obj """
-    try:
-        return unicode(obj, *args)
-    except UnicodeDecodeError:
-        # obj is byte string
-        ascii_text = str(obj).encode('string_escape')
-        return unicode(ascii_text)
+import stringFunctions
 
 class imapEmail(object):
     def __init__(self, emailAddress, server='imap.gmail.com', port=993):
@@ -78,13 +54,6 @@ class imapEmail(object):
             decoded += part
         return decoded
     
-    def _FixEncoding(self, string):
-        if isinstance(string, str):
-            encodingGuess = chardet.detect(string)['encoding']
-            print encodingGuess
-            if encodingGuess and encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':
-                return string.decode(encodingGuess)
-    
     def decodeContact(self, contact):
         alias, address = email.Utils.parseaddr(contact)
         return self.decodeText(alias), self.decodeText(address)
@@ -104,10 +73,10 @@ class imapEmail(object):
                 recipients += msg.get_all('resent-to', []) + msg.get_all('resent-cc', [])
                 
                 rtn['body'] = self._extractBody(msg, True)                
-                rtn['raw'] = safe_unicode(msg.as_string())
+                rtn['raw'] = stringFunctions.safeUnicode(msg.as_string())
                 
-                rtn['body'] = self._FixEncoding(rtn['body'])
-                rtn['subject'] = self._FixEncoding(rtn['subject'])
+                rtn['body'] = stringFunctions.fixEncoding(rtn['body'])
+                rtn['subject'] = stringFunctions.fixEncoding(rtn['subject'])
                 
                 recipients = email.Utils.getaddresses(recipients)
                 rtn['to'] = []
@@ -129,11 +98,6 @@ class imapEmail(object):
                 return ''
             else:
                 return msg.get_payload(decode=decode)
-               
-    def _stripHtml(self, text):
-        stripper = HtmlStripper()
-        stripper.feed(text)
-        return stripper.get_data()
     
     def logout(self):
         self.imap.logout()
