@@ -20,7 +20,7 @@ def _stripTags(html):
         return re.sub("<\/?[^>]*>", "", html)
 
 def getEmail(user, accountId, emailAddress, username, password, server='imap.gmail.com', port=993, encryptUsing=None):
-    """
+    
     sql = "DELETE FROM mRecipient"   
     database.execute(sql).close()
     
@@ -43,7 +43,7 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
     
     sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'proberts84@gmail.com', 1, 'Paul Roberts')"
     database.execute(sql, ourContactId).close()
-        """
+    
     server = imapEmail(emailAddress, server, port)
     server.login(username, password)
     ids = server.getMailIds()
@@ -69,13 +69,14 @@ def getEmail(user, accountId, emailAddress, username, password, server='imap.gma
 
 def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, sender, to, body, bodyNoHtml, raw):
     
-    alias, address = email.Utils.parseaddr(sender)
+    alias, address = sender
     sender = contact.addContact(user, 'email', address, alias)
     
     sql = """
         INSERT INTO mMessage (intAccountId, datHappened, intSenderId, strSummary)
         VALUES (%s, %s, %s, %s)"""
-    
+    print len(subject)
+    print subject
     cursor = database.execute(sql, (accountId, date, sender, subject))    
     messageId = cursor.lastrowid
     cursor.close()
@@ -86,8 +87,7 @@ def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, s
     
     database.execute(sql, (messageId, remoteId, subject, body, bodyNoHtml, raw)).close()
     
-    print to
-    for alias, address in email.Utils.getaddresses(to):
+    for alias, address in to:
         recipient = contact.addContact(user, 'email', address, alias)
         
         if recipient:

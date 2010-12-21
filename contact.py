@@ -6,6 +6,8 @@ def addContact(user, addressType, address, alias=None):
         print 'Address is empty'
         return None
     
+    address = address.lower()
+    
     sql = """
         SELECT c.intId AS intContactId
         FROM cContact c
