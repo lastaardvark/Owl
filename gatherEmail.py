@@ -58,8 +58,7 @@ def addEmailToDatabase(user, emailAddress, accountId, remoteId, date, subject, s
     sql = """
         INSERT INTO mMessage (intAccountId, datHappened, intSenderId, strSummary)
         VALUES (%s, %s, %s, %s)"""
-    print len(subject)
-    print subject
+    
     cursor = database.execute(sql, (accountId, date, sender, subject))    
     messageId = cursor.lastrowid
     cursor.close()
