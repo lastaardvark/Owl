@@ -35,6 +35,7 @@ class ImapGetter:
         self.username = username
         self.account = account
         self.encryptionKey = encryptionKey
+        self.needToStop = False
         
         #reset()
     
@@ -60,16 +61,18 @@ class ImapGetter:
         
         done = 0
         for id in ids:
+        
+            if self.needToStop:
+                break
             
             self._downloadEmail(id, server)
             
-            done += 1
-            
-            if progressBroadcaster:
+            done += 1            
+            if progressBroadcaster and not self.needToStop:
                 progressBroadcaster(done)
                 
         server.logout()
-
+    
 
     def _downloadEmail(self, id, server):
         email = server.getMailFromId(id)
@@ -93,7 +96,9 @@ class ImapGetter:
             VALUES (%s, %s, %s, %s, %s)"""
         
         database.execute(sql, (messageId, id, email['subject'], body, raw)).close()
-
+    
+    def stop(self):
+        self.needToStop = True
         
 if __name__ == '__main__':
     

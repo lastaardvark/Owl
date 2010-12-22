@@ -7,6 +7,7 @@ from PyQt4.QtGui import QLabel, QLineEdit, QListView, QMainWindow, QProgressDial
 from PyQt4.QtCore import Qt, SIGNAL, SLOT
 from threading import Thread
 from loginBox import LoginBox
+from editContact import EditContact
 from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
 
@@ -49,6 +50,11 @@ class MainWindow(QMainWindow):
         self.userList = AutoCompleteListBox(self, [])
         self.messageList = AutoCompleteListBox(self, [])
         
+        self.a = QListView()
+        
+        box = self.userList.getListBox()
+        self.connect(self.a, SIGNAL('doubleClicked()'), self.showEditContact)
+        
         frame = QFrame()
         frame.setFrameStyle(QFrame.VLine | QFrame.Raised)
         
@@ -68,6 +74,7 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.userList.getListBox(), 2, 0)
         grid.addWidget(self.messageList.getListBox(), 2, 2)
         
+        grid.addWidget(self.a, 3, 0)
         grid.addWidget(frame, 0, 1, 3, 1)
                 
         centralWidget.setLayout(grid)
@@ -79,12 +86,12 @@ class MainWindow(QMainWindow):
         self.refreshLists()
     
     def refreshLists(self):
-        contacts = map(contact.getName, contact.getContacts(self.username))
+        contacts = contact.getContacts(self.username)
         contacts.sort()        
-        self.userList.replaceList(contacts)
+        self.userList.replaceList([(unicode(c), c) for c in contacts])
         
-        messages = map(message.getName, message.getMessages(self.username, 5000))      
-        self.messageList.replaceList(messages)
+        messages = message.getMessages(self.username, 5000)
+        self.messageList.replaceList([(unicode(m), m) for m in messages])
     
     def createProgressBar(self, maximum):
         self.progress.setMaximum(maximum)
@@ -98,13 +105,16 @@ class MainWindow(QMainWindow):
     def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
         self.emit(SIGNAL('updateProgressBar(PyQt_PyObject)'), messagesProcessed)
     
+    def cancelMessageRetrieval(self):
+        self.gatherData.stop()
+    
     def fetchMessagesThread(self):
-        gatherData = GatherData(self.username, self.password)
+        self.gatherData = GatherData(self.username, self.password)
         
-        newMessageCount = gatherData.countNewMessages()
+        newMessageCount = self.gatherData.countNewMessages()
         self.emit(SIGNAL('receivedMessageCount(PyQt_PyObject)'), newMessageCount)
         
-        gatherData.getNewMessages(self.receiveBroadcastOfDownloadProgress)
+        self.gatherData.getNewMessages(self.receiveBroadcastOfDownloadProgress)
         
         self.emit(SIGNAL('refreshLists()'))
         
@@ -118,9 +128,14 @@ class MainWindow(QMainWindow):
         self.connect(self, SIGNAL('receivedMessageCount(PyQt_PyObject)'), self.createProgressBar)
         self.connect(self, SIGNAL('updateProgressBar(PyQt_PyObject)'), self.updateProgressBar)
         self.connect(self, SIGNAL('refreshLists()'), self.refreshLists)
+        self.connect(self.progress, SIGNAL('canceled()'), self.cancelMessageRetrieval) 
         
         thread.start()
-                
+   
+    def showEditContact(self):
+        print 'woo'
+        editContact = EditContact(self.userList.getSelectedItem())
+        editContact.show()
 
 app = QApplication(sys.argv)
 

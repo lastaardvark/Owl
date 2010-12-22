@@ -1,4 +1,21 @@
-import contact, database
+import database
+from contact import Contact
+
+class Message:
+    
+    def __init__(self, fields):
+        self.id = fields['intMessageId']
+        self.sender = Contact(fields)
+        self.sentDate = fields['datHappened']
+        self.summary = fields['strSummary'].replace(u'\n', u'')
+        
+        if len(self.summary) > 77:
+            self.summary = self.summary[:77] + '...'
+
+    def __str__(self):
+        date = self.sentDate.strftime('%Y-%m-%d %H:%M')
+
+        return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
 
 def getMessages(user, number=50):
     
@@ -8,10 +25,10 @@ def getMessages(user, number=50):
             m.strSummary, m.datHappened,
             e.strRemoteId,
             c.intId AS intContactId,
-            c.strForename,
-            c.strSurname,
-            a.strAddress AS strBestAddress,
-            a.strAlias AS strBestAlias
+            c.strForename AS strContactForename,
+            c.strSurname AS strContactSurname,
+            a.strAddress AS strContactBestAddress,
+            a.strAlias AS strContactBestAlias
         FROM mAccount ac
             INNER JOIN mMessage m ON m.intAccountId = ac.intId
             INNER JOIN cContact c ON c.intId = m.intSenderId
@@ -22,7 +39,7 @@ def getMessages(user, number=50):
         ORDER BY m.datHappened DESC
         LIMIT %s"""
         
-    return database.executeManyToDictionary(sql, (user, number))
+    return [Message(msg) for msg in database.executeManyToDictionary(sql, (user, number))]
 
 def getAllRemoteIds(accountId):
     sql = """
@@ -32,18 +49,6 @@ def getAllRemoteIds(accountId):
         WHERE m.intAccountId = %s"""
     
     return database.executeManyToDictionary(sql, accountId)  
-    
-def getName(message):
-    summary = message['strSummary'].replace(u'\n', u'')
-    
-    if len(summary) > 77:
-        summary = summary[:77] + '...'
-        
-    date = message['datHappened'].strftime('%Y-%m-%d %H:%M')
-    remoteId = message['strRemoteId']
-    if not remoteId:
-        remoteId = ''
-    return date + ', ' + contact.getShortName(message) + ': ' + summary + ' (' + remoteId + ')'
 
 def store(accountId, date, senderId, summary, recipientIds):
 

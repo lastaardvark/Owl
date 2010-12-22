@@ -1,5 +1,37 @@
 import database
 
+class Contact:
+    
+    def __init__(self, fields):
+        self.id = fields['intContactId']
+        self.forename = fields['strContactForename']
+        self.surname = fields['strContactForename']
+        
+        if 'strContactBestAddress' in fields:
+            self.bestAddress = fields['strContactBestAddress']
+        if 'strContactBestAlias' in fields:
+            self.bestAlias = fields['strContactBestAlias']
+    
+    def __str__(self):            
+        
+        if self.forename and self.surname:
+            return self.forename + ' ' + self.surname
+        
+        elif self.surname:
+            return '? ' + self.surname
+            
+        elif self.forename:
+            return self.forename + ' ?'
+            
+        elif self.bestAlias:
+            return self.bestAlias
+                    
+        elif self.bestAddress:
+            return self.bestAddress
+            
+        else:
+            return '?'
+
 def addContact(user, addressType, address, alias=None):
     
     if not address:
@@ -44,58 +76,27 @@ def getContacts(user):
     sql = """
         SELECT 
             c.intId AS intContactId,
-            c.strForename,
-            c.strSurname,
-            a.strAddress AS strBestAddress,
-            a.strAlias AS strBestAlias
+            c.strForename AS strContactForename,
+            c.strSurname AS strContactForename,
+            a.strAddress AS strContactBestAddress,
+            a.strAlias AS strContactBestAlias
         FROM cContact c
             INNER JOIN cAddress a ON c.intId = a.intContactId
         WHERE c.strUser = %s
             AND c.bitIsMe = 0
             AND a.bitBestAddress = 1"""
     
-    return database.executeManyToDictionary(sql, user)
+    return [Contact(contact) for contact in database.executeManyToDictionary(sql, user)]
+            
+def getContactFromId(id):
     
-def getName(contact):
+    sql = """
+        SELECT 
+            c.intId AS intContactId,
+            c.strForename AS strContactForename,
+            c.strSurname AS strContactForename
+        FROM cContact c"""
     
-    if contact['strForename'] and contact['strSurname']:
-        return contact['strForename'] + ' ' + contact['strSurname']
+    return Contact(database.executeOneToDictionary(sql, user))
     
-    elif contact['strSurname']:
-        return '? ' + contact['strSurname']
-        
-    elif contact['strForename']:
-        return contact['strForename'] + ' ?'
     
-    elif contact['strBestAlias'] and contact['strBestAddress']:
-        return ' (' + contact['strBestAlias'] + ', ' + contact['strBestAddress'] + ')'
-        
-    elif contact['strBestAlias']:
-        return ' (' + contact['strBestAlias'] + ')'
-        
-    elif contact['strBestAddress']:
-        return ' (' + contact['strBestAddress'] + ')'
-        
-    else:
-        return '?'
-        
-def getShortName(contact):
-    
-    if contact['strForename'] and contact['strSurname']:
-        return contact['strForename'] + ' ' + contact['strSurname']
-    
-    elif contact['strSurname']:
-        return '? ' + contact['strSurname']
-        
-    elif contact['strForename']:
-        return contact['strForename'] + ' ?'
-        
-    elif contact['strBestAlias']:
-        return contact['strBestAlias']
-                
-    elif contact['strBestAddress']:
-        return contact['strBestAddress']
-        
-    else:
-        return '?'
-        

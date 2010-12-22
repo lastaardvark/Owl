@@ -30,7 +30,6 @@ def safeUnicode(obj, *args):
 def fixEncoding(string):
     if isinstance(string, str):
         encodingGuess = chardet.detect(string)['encoding']
-        print encodingGuess
         if encodingGuess == 'EUC-TW':
             return safeUnicode(string)
         if encodingGuess and encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':

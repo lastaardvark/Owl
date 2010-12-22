@@ -61,14 +61,14 @@ class imapEmail(object):
         return self.decodeText(alias), self.decodeText(address)
         
     def getMailFromId(self, id):
-        print imaplib.__file__
+    
         self.imap.select()
         _, response = self.imap.fetch(id, '(RFC822)')
         
         for responsePart in response:
             if isinstance(responsePart, tuple):
                 msg = email.message_from_string(responsePart[1])
-                print msg['subject']
+                
                 rtn = {}
                 rtn['subject'] = email.header.decode_header(msg['subject'])[0][0]
                 rtn['date'] = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate(msg['date'])))

@@ -30,7 +30,7 @@ class AutoCompleteListBox:
      
         def data(self, index, role): 
             if index.isValid() and role == Qt.DisplayRole:
-                return QVariant(self.listData[index.row()])
+                return QVariant(self.listData[index.row()][0])
             else: 
                 return QVariant()
     
@@ -49,7 +49,6 @@ class AutoCompleteListBox:
         self.listBox.setModel(self.listModel)
         
         self.window.connect(self.lineEdit, SIGNAL("textChanged(QString)"), self._OnTextChanged)
-        self.window.connect(self.lineEdit, SIGNAL("tabPressed"), self._OnTabPressed)
         
     def _OnTextChanged(self):
         if str(self.lineEdit.text()) == '':
@@ -57,21 +56,9 @@ class AutoCompleteListBox:
             self.subList = []
         else:
             pattern = str(self.lineEdit.text())
-            self.subList = [item for item in self.listData if item.lower().find(pattern.lower()) >= 0]
+            self.subList = [item for item in self.listData if item[0].lower().find(pattern.lower()) >= 0]
             self.listModel.replaceList(self.subList)
-    
-    def _OnTabPressed(self):
-        # There’s one possibility
-        if len(self.subList) == 1:
-            self.lineEdit.setText(self.subList[0])
-
-        # multiple possibilities
-        elif len(self.subList) > 1:
-            match = self.subList.pop(0)
-            for word in self.subList:
-                match = _StringIntersection(word, match)
-            self.lineEdit.setText(match)
-              
+                  
     def getLineEdit(self):
         return self.lineEdit
                 
@@ -82,6 +69,9 @@ class AutoCompleteListBox:
         self.subList = []
         self.listData = newList
         self.listModel.replaceList(newList)
+    
+    def getSelectedItem(self):
+        return self.subList[self.listBox.currentItem()][1]
     
 def _StringIntersection(string1, string2):
     """ The largest common substring of two strings, anchored at the left. """

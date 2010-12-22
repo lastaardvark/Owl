@@ -45,3 +45,8 @@ class GatherData:
         
         if self.imapGetter:
             self.imapGetter.downloadNewMessages(self.imapIds, progressBroadcaster)
+    
+    def stop(self):
+        if self.imapGetter:
+            self.imapGetter.stop()
+    
