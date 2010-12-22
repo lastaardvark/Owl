@@ -24,11 +24,12 @@ def getMessages(user, number=50):
         
     return database.executeManyToDictionary(sql, (user, number))
 
-def getAllIds(accountId):
+def getAllRemoteIds(accountId):
     sql = """
-        SELECT intId
-        FROM mMessage
-        WHERE intAccountId = %s"""
+        SELECT e.strRemoteId
+        FROM mMessage m
+            INNER JOIN mEmail e ON e.intMessageId = m.intId
+        WHERE m.intAccountId = %s"""
     
     return database.executeManyToDictionary(sql, accountId)  
     
@@ -55,10 +56,11 @@ def store(accountId, date, senderId, summary, recipientIds):
     cursor.close()
     
     for recipientId in recipientIds:
-        sql = """
-            REPLACE INTO mRecipient (intMessageId, intContactId)
-            VALUES (%s, %s)"""
-        
-        database.execute(sql, (messageId, recipientId)).close()
+        if recipientId:
+            sql = """
+                REPLACE INTO mRecipient (intMessageId, intContactId)
+                VALUES (%s, %s)"""
+            
+            database.execute(sql, (messageId, recipientId)).close()
     
     return messageId

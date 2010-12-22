@@ -10,7 +10,7 @@ from loginBox import LoginBox
 from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
 
-import contact, message
+import contact, message, stringFunctions
 
 class MainWindow(QMainWindow):
 
@@ -88,11 +88,12 @@ class MainWindow(QMainWindow):
     
     def createProgressBar(self, maximum):
         self.progress.setMaximum(maximum)
-        self.progress.setLabelText('Downloading email 1 of ' + str(maximum))
+        self.progress.setLabelText('Downloading email 1 of ' + stringFunctions.formatInt(maximum))
     
     def updateProgressBar(self, messagesProcessed):
         self.progress.setValue(messagesProcessed)
-        self.progress.setLabelText('Downloading email %s of %s...' % (str(messagesProcessed + 1), str(self.progress.maximum())))
+        self.progress.setLabelText('Downloading email %s of %s...' % \
+            (stringFunctions.formatInt(messagesProcessed + 1), stringFunctions.formatInt(self.progress.maximum())))
         
     def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
         self.emit(SIGNAL('updateProgressBar(PyQt_PyObject)'), messagesProcessed)

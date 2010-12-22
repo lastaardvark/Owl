@@ -63,10 +63,11 @@ class imapEmail(object):
     def getMailFromId(self, id):
         self.imap.select()
         _, response = self.imap.fetch(id, '(RFC822)')
+        
         for responsePart in response:
             if isinstance(responsePart, tuple):
                 msg = email.message_from_string(responsePart[1])
-                
+                print msg['subject']
                 rtn = {}
                 rtn['subject'] = email.header.decode_header(msg['subject'])[0][0]
                 rtn['date'] = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate(msg['date'])))
@@ -74,9 +75,8 @@ class imapEmail(object):
                 recipients = msg.get_all('to', []) + msg.get_all('cc', []) + msg.get_all('bcc', [])
                 recipients += msg.get_all('resent-to', []) + msg.get_all('resent-cc', [])
                 
-                rtn['body'] = self._extractBody(msg, True)                
-                rtn['raw'] = stringFunctions.safeUnicode(msg.as_string())
-                
+                rtn['body'] = self._extractBody(msg, True)
+                                
                 rtn['body'] = stringFunctions.fixEncoding(rtn['body'])
                 rtn['subject'] = stringFunctions.fixEncoding(rtn['subject'])
                 
@@ -85,18 +85,30 @@ class imapEmail(object):
                 
                 for alias, address in recipients:
                     rtn['to'].append((self.decodeText(alias), self.decodeText(address)))
-                                
-                return rtn
                 
+                self._removeAttachments(msg)
+                rtn['raw'] = stringFunctions.safeUnicode(msg.as_string())
+                
+                return rtn
+    
+    def _removeAttachments(self, msg):
+        if msg.is_multipart():
+            for subMessage in msg.get_payload():
+                self._removeAttachments(subMessage)
+        else:
+            if msg.get_filename(): 
+                msg.set_payload('[Attachment removed]')
+    
     def _extractBody(self, msg, decode):        
         if msg.is_multipart():
             rtn = ''
             for subMessage in msg.get_payload():
-                if not subMessage.get_filename(): # Not an attachment
+                # Not an attachment
+                if not subMessage.get_filename(): 
                     rtn += self._extractBody(subMessage, decode)
             return rtn
         else:
-            if msg.get_filename(): # Not an attachment
+            if msg.get_filename(): 
                 return ''
             else:
                 return msg.get_payload(decode=decode)

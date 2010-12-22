@@ -33,16 +33,16 @@ def execute(sql, parameters = None):
         try:
             cursor.execute(sql, parameters)
             done = True
-        except MySQLdb.OperationalError as err:
-            print err
-            tries += 1
-            try:
-                cursor.close()
-            except:
-                pass
+        #except MySQLdb.OperationalError as err:
+        #    print err
+        #    tries += 1
+        #    try:
+        #        cursor.close()
+        #    except:
+        #        pass
             
-            _Conn = None
-            cursor = getCursor()
+        #    _Conn = None
+        #    cursor = getCursor()
         except MySQLdb.ProgrammingError as err:
             print err
             tries += 1

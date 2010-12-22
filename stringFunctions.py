@@ -1,7 +1,7 @@
-from HTMLParser import HTMLParser
+import HTMLParser, re
 import chardet
 
-class HtmlStripper(HTMLParser):
+class HtmlStripper(HTMLParser.HTMLParser):
     def __init__(self):
         self.reset()
         self.fed = []
@@ -30,5 +30,25 @@ def safeUnicode(obj, *args):
 def fixEncoding(string):
     if isinstance(string, str):
         encodingGuess = chardet.detect(string)['encoding']
+        print encodingGuess
+        if encodingGuess == 'EUC-TW':
+            return safeUnicode(string)
         if encodingGuess and encodingGuess != 'UTF-8' and encodingGuess != 'ASCII':
             return string.decode(encodingGuess)
+    return string
+
+def formatInt(number):
+    
+    number = str(number)
+    
+    components = []
+    
+    start = len(number) % 3
+    
+    if start != 0:
+        components.append(number[0:start])
+        
+    for n in range(start, len(number), 3):
+        components.append(number[n: n + 3])
+    
+    return ",".join(components)

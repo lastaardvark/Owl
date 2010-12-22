@@ -36,7 +36,7 @@ class ImapGetter:
         self.account = account
         self.encryptionKey = encryptionKey
         
-        reset()
+        #reset()
     
     def _connect(self):
         server = imapEmail(self.account['strEmailAddress'], self.account['strServer'], self.account['intPort'])
@@ -45,12 +45,12 @@ class ImapGetter:
         
     def getNewMessageIds(self):
         server = self._connect()
-        serverIds = server.getMailIds()
+        serverIds = [str(msgId) for msgId in server.getMailIds()]
         server.logout()
         
-        storedIds = message.getAllIds(self.account['intAccountId'])
+        storedIds = [str(msg['strRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'])]
         
-        return [msg for msg in serverIds if storedIds.count(msg) == 0][:5]
+        return [msg for msg in serverIds if storedIds.count(msg) == 0]
         
     def downloadNewMessages(self, ids = None, progressBroadcaster = None):
         if not ids:
@@ -62,16 +62,14 @@ class ImapGetter:
         for id in ids:
             
             email = server.getMailFromId(id)
-        
-            body = email['body']
-            strippedBody = stringFunctions.stripTags(body)
-            raw = email['raw']
             
+            body = email['body']
+            raw = email['raw']
+               
             if self.encryptionKey:
                 body = encryption.encrypt(self.encryptionKey, body)
-                strippedBody = encryption.encrypt(self.encryptionKey, strippedBody)
                 raw = encryption.encrypt(self.encryptionKey, raw)
-            
+                            
             alias, address = email['from']
             senderId = contact.addContact(self.username, 'email', address, alias)
             
@@ -80,10 +78,10 @@ class ImapGetter:
             messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
             
             sql = """
-                INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strBodyNoHtml, strRaw)
-                VALUES (%s, %s, %s, %s, %s, %s)"""
+                INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strRaw)
+                VALUES (%s, %s, %s, %s, %s)"""
             
-            database.execute(sql, (messageId, id, email['subject'], body, strippedBody, raw)).close()
+            database.execute(sql, (messageId, id, email['subject'], body, raw)).close()
             
             done += 1
             
