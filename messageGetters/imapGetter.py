@@ -48,7 +48,7 @@ class ImapGetter:
         serverIds = [str(msgId) for msgId in server.getMailIds()]
         server.logout()
         
-        storedIds = [str(msg['strRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'])]
+        storedIds = [msg['strRemoteId'] for msg in message.getAllRemoteIds(self.account['intAccountId'])]
         
         return [msg for msg in serverIds if storedIds.count(msg) == 0]
         
@@ -61,33 +61,62 @@ class ImapGetter:
         done = 0
         for id in ids:
             
-            email = server.getMailFromId(id)
-            
-            body = email['body']
-            raw = email['raw']
-               
-            if self.encryptionKey:
-                body = encryption.encrypt(self.encryptionKey, body)
-                raw = encryption.encrypt(self.encryptionKey, raw)
-                            
-            alias, address = email['from']
-            senderId = contact.addContact(self.username, 'email', address, alias)
-            
-            recipientIds = [contact.addContact(self.username, 'email', address, alias) for alias, address in email['to']]
-            
-            messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
-            
-            sql = """
-                INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strRaw)
-                VALUES (%s, %s, %s, %s, %s)"""
-            
-            database.execute(sql, (messageId, id, email['subject'], body, raw)).close()
+            self._downloadEmail(id, server)
             
             done += 1
             
             if progressBroadcaster:
                 progressBroadcaster(done)
                 
-        server.logout()    
+        server.logout()
+
+
+    def _downloadEmail(self, id, server):
+        email = server.getMailFromId(id)
+        
+        body = email['body']
+        raw = email['raw']
+            
+        if self.encryptionKey:
+            body = encryption.encrypt(self.encryptionKey, body)
+            raw = encryption.encrypt(self.encryptionKey, raw)
+                        
+        alias, address = email['from']
+        senderId = contact.addContact(self.username, 'email', address, alias)
+        
+        recipientIds = [contact.addContact(self.username, 'email', address, alias) for alias, address in email['to']]
+        
+        messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
+        
+        sql = """
+            INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strRaw)
+            VALUES (%s, %s, %s, %s, %s)"""
+        
+        database.execute(sql, (messageId, id, email['subject'], body, raw)).close()
+
+        
+if __name__ == '__main__':
+    
+    imapGetter = ImapGetter( \
+        'tla', {'strEmailAddress': 'tla.owl.test@gmail.com', 
+                'strServer': 'imap.gmail.com',
+                'intPort': 993, 
+                'strUsername': 'tla.owl.test', 
+                'strPassword': settings.settings['testPassword'],
+                'intAccountId': 4
+                })
+                
+    #ids = imapGetter.getNewMessageIds()
+    
+    #print type(ids[0])
+    #print ids
+    server = imapGetter._connect()
+    
+    email = server.getMailFromId(4)
+  #  print email
+                
+                
+                
+                
     
     

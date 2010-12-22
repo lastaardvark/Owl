@@ -16,7 +16,7 @@ pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
 
 # one-liners to encrypt/encode and decrypt/decode a string
 # encrypt with AES, encode with base64
-EncodeAES = lambda c, s: base64.b64encode(c.encrypt(pad(s.encode("utf8"))))
+EncodeAES = lambda c, s: base64.b64encode(c.encrypt(pad(s)))
 DecodeAES = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(PADDING)
 
 def getRandomKey():
@@ -30,6 +30,11 @@ def getCipherFromPassword(password):
 
 def encrypt(password, string):
     cipher = getCipherFromPassword(password)
+    try:
+        string = string.encode("utf8")
+    except:  # Already UTF-8
+        pass
+    
     return EncodeAES(cipher, string)
 
 def decrypt(password, string):
