@@ -13,7 +13,7 @@ import contact, message, stringFunctions
 class EditContact(QWidget):
     
     def __init__(self, contact):
-        QMainWindow.__init__(self)
+        QWidget.__init__(self)
         self.contact = contact
         
         self.resize(400, 300)

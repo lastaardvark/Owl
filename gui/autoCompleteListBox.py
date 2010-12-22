@@ -66,7 +66,7 @@ class AutoCompleteListBox:
         
         if str(self.lineEdit.text()) == '':
             self.listModel.replaceList(self.listData)
-            self.subList = []
+            self.subList = self.listData
         else:
             pattern = str(self.lineEdit.text())
             self.subList = [item for item in self.listData if item[0].lower().find(pattern.lower()) >= 0]
@@ -91,16 +91,19 @@ class AutoCompleteListBox:
             Replaces the data in the listbox with a new list.
         """
         
-        self.subList = []
+        self.subList = newList
         self.listData = newList
         self.listModel.replaceList(newList)
     
-    def getSelectedItem(self):
+    def getSelectedItems(self):
         """
-            Returns the object associated with the selected list item.
+            Returns the objects associated with the selected list items.
         """
         
-        return self.subList[self.listBox.currentItem()][1]
+        if self.listBox.selectedIndexes():
+            return [self.subList[index.row()][1] for index in self.listBox.selectedIndexes()]
+        else:
+            return None
     
 def _StringIntersection(string1, string2):
     """

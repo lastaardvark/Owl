@@ -59,11 +59,9 @@ class MainWindow(QMainWindow):
         
         self.userList = AutoCompleteListBox(self, [])
         self.messageList = AutoCompleteListBox(self, [])
-        
-        self.a = QListView()
-        
+                
         box = self.userList.getListBox()
-        self.connect(self.a, SIGNAL('doubleClicked()'), self.showEditContact)
+        box.doubleClicked.connect(self.showEditContact)
         
         frame = QFrame()
         frame.setFrameStyle(QFrame.VLine | QFrame.Raised)
@@ -84,7 +82,6 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.userList.getListBox(), 2, 0)
         grid.addWidget(self.messageList.getListBox(), 2, 2)
         
-        grid.addWidget(self.a, 3, 0)
         grid.addWidget(frame, 0, 1, 3, 1)
                 
         centralWidget.setLayout(grid)
@@ -184,9 +181,10 @@ class MainWindow(QMainWindow):
         thread.start()
    
     def showEditContact(self):
-        print 'woo'
-        editContact = EditContact(self.userList.getSelectedItem())
-        editContact.show()
+        contacts = self.userList.getSelectedItems()
+        if len(contacts) == 1:
+            editContact = EditContact(contacts[0])
+            editContact.show()
 
 app = QApplication(sys.argv)
 
