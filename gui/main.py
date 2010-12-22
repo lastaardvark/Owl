@@ -104,9 +104,9 @@ class MainWindow(QMainWindow):
             put them in the relevant list boxes.
         """
         
-        contacts = contact.getContacts(self.username)
-        contacts.sort()        
-        self.userList.replaceList([(unicode(c), c) for c in contacts])
+        self.contacts = contact.getContacts(self.username)
+        self.contacts.sort()        
+        self.userList.replaceList([(unicode(c), c) for c in self.contacts])
         
         messages = message.getMessages(self.username, 5000)
         self.messageList.replaceList([(unicode(m), m) for m in messages])
@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
     def showEditContact(self):
         contacts = self.userList.getSelectedItems()
         if len(contacts) == 1:
-            editContact = EditContact(contacts[0])
+            editContact = EditContact(self, self.username, contacts[0])
             editContact.show()
 
 app = QApplication(sys.argv)

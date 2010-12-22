@@ -86,6 +86,20 @@ def addContact(user, addressType, address, alias=None):
         
     return contactId
     
+def updateContact(user, contactId, forename, surname):
+    """
+        Updates the database record of a contact to the given name.
+    """
+    
+    sql = """
+        UPDATE cContact
+        SET strForename = %s,
+            strSurname = %s
+        WHERE intId = %s
+            AND strUser = %s"""
+    
+    database.execute(sql, (forename, surname, contactId, user)).close()
+    
 def getContacts(user):
     """
         Returns a list of all the contacts of the given user.
