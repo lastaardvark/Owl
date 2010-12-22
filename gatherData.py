@@ -1,10 +1,21 @@
+# coding=utf8
 import database, encryption, login, settings
 from owlExceptions import NotAuthenticatedException
 from messageGetters.imapGetter import ImapGetter
 
 class GatherData:
-
+    """
+        A class to gather data from all the accounts of a user
+    """
+    
     def __init__(self, username, password):
+        """
+            Takes the user’s owl credentials. Checks them (for the sake of paranoia)
+            and initialises any getters for the users’s accounts.
+            
+            It will raise a NotAuthenticatedException if the authentication failed.
+        """
+        
         self.username = username
         self.password = password
         
@@ -14,6 +25,10 @@ class GatherData:
         self.imapGetter = self.checkForImap()
     
     def checkForImap(self):
+        """
+            If the user has an IMAP account, it instantiates it.
+        """
+        
         sql = """
             SELECT 
                 intId AS intAccountId, strServer, intPort, 
@@ -35,6 +50,9 @@ class GatherData:
         return ImapGetter(self.username, account, encryptionKey)
     
     def countNewMessages(self):
+        """
+            Returns the number of new messages accross the users’s accounts
+        """
         
         if self.imapGetter:
             self.imapIds = self.imapGetter.getNewMessageIds() or []
@@ -42,11 +60,19 @@ class GatherData:
         return len(self.imapIds)
     
     def getNewMessages(self, progressBroadcaster = None):
+        """
+            Downloads the new messages of all the users’s accounts, and stores them
+            in the database.
+        """
         
         if self.imapGetter:
             self.imapGetter.downloadNewMessages(self.imapIds, progressBroadcaster)
     
     def stop(self):
+        """
+            Stops downloading messages (after the current message has been stored)
+        """
+        
         if self.imapGetter:
             self.imapGetter.stop()
     

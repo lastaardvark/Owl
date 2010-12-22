@@ -1,3 +1,5 @@
+# coding=utf8
+
 import os, sys
 from PyQt4 import QtGui, QtCore
 
@@ -6,6 +8,14 @@ import login, settings
 class LoginBox(QtGui.QWidget):
         
     def __init__(self, afterLogin):
+        """
+            Initiates a login box. This will contain a username and password box,
+            and OK and Cancel buttons.
+            
+            If the user successfully logs in, this login box will he hidden, and
+            the function afterLogin will be called.
+        """
+        
         QtGui.QWidget.__init__(self)
         self.afterLogin = afterLogin
         self.setFixedSize(400, 150)

@@ -1,32 +1,49 @@
+# coding=utf8
+
 import base64, datetime, email, email.header, imaplib, os, re, sys, time
 
 sys.path.append(os.path.join(os.getcwd()))
 
 import stringFunctions
 
-class imapEmail(object):
+class ImapEmail(object):
     def __init__(self, emailAddress, server='imap.gmail.com', port=993):
+        """
+            Initialises a new ImapEmail.
+        """
         self.server = str(server)
         self.port = int(port)
         self.imap = None
         self.emailAddress = str(emailAddress)
 
     def login(self, username, password):
+        """
+            Connects and logs into the server.
+        """
+        
         self.imap = imaplib.IMAP4_SSL(self.server, self.port)
         rc, self.response = self.imap.login(str(username), str(password))
         return rc
 
     def fetchMailboxes(self):
+        """
+            Returns a list of mailboxes.
+            Does not return any containing words like 'spam', 'trash', and so forth.
+        """
+        
         self.imap.select(readonly=1)
         _, response = self.imap.list()
         mailboxes = []
         for item in response:
-            if not re.search('spam|draft|trash|deleted|bin', item, re.IGNORECASE):
+            if not re.search('spam|draft|trash|deleted|bin|junk', item, re.IGNORECASE):
                 mailboxes.append(item.split()[-1])
         
         return mailboxes
         
     def getMailIdsFromFolder(self, folder='Inbox'):
+        """
+            Returns the remote IDs from a given mailbox.
+        """
         
         success, _ = self.imap.select(folder, readonly=1)
         
@@ -39,6 +56,10 @@ class imapEmail(object):
         return ids
     
     def getMailIds(self):
+        """
+            Returns the remote IDs from all valid mailboxes.
+        """        
+        
         ids = []
         for folder in self.fetchMailboxes():
             ids += self.getMailIdsFromFolder(folder)
@@ -48,6 +69,11 @@ class imapEmail(object):
         return ids
     
     def decodeText(self, value):
+        """
+            Decodes the given text.
+            E.g.  decodeText('=?iso-8859-1?q?Testing?=') == u'Testing'
+        """
+        
         parts = email.header.decode_header(value)
         decoded = ''
         for part, charset in parts:
@@ -57,11 +83,18 @@ class imapEmail(object):
         return decoded
     
     def decodeContact(self, contact):
+        """
+            Decodes the given contact string, and returns
+            the email address and alias.
+        """
         alias, address = email.Utils.parseaddr(contact)
         return self.decodeText(alias), self.decodeText(address)
         
     def getMailFromId(self, id):
-    
+        """
+            Takes a remote ID and returns a dictionary containing
+            all the useful fields. They should all be decoded to unicode.
+        """    
         self.imap.select()
         _, response = self.imap.fetch(id, '(RFC822)')
         
@@ -93,6 +126,9 @@ class imapEmail(object):
                 return rtn
     
     def _removeAttachments(self, msg):
+        """
+            Removes all attachment from the given email.
+        """
         if msg.is_multipart():
             for subMessage in msg.get_payload():
                 self._removeAttachments(subMessage)
@@ -100,7 +136,11 @@ class imapEmail(object):
             if msg.get_filename(): 
                 msg.set_payload('[Attachment removed]')
     
-    def _extractBody(self, msg, decode):        
+    def _extractBody(self, msg, decode):
+        """
+            Walks through the email, and returns all payloads
+            that aren’t attachments.
+        """
         if msg.is_multipart():
             rtn = ''
             for subMessage in msg.get_payload():
@@ -115,4 +155,8 @@ class imapEmail(object):
                 return msg.get_payload(decode=decode)
     
     def logout(self):
+        """
+            Logout from the IMAP server
+        """
+        
         self.imap.logout()

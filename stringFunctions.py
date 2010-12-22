@@ -1,7 +1,13 @@
+# coding=utf8
+
 import HTMLParser, re
 import chardet
 
 class HtmlStripper(HTMLParser.HTMLParser):
+    """
+        A class to remove HTML tags from text.
+    """
+    
     def __init__(self):
         self.reset()
         self.fed = []
@@ -11,6 +17,10 @@ class HtmlStripper(HTMLParser.HTMLParser):
         return ''.join(self.fed)
 
 def stripTags(html):
+    """
+        Remove HTML tags from text
+    """
+    
     s = HtmlStripper()
     try:
         s.feed(html)
@@ -18,16 +28,25 @@ def stripTags(html):
     except HTMLParser.HTMLParseError:
         return re.sub("<\/?[^>]*>", "", html)
   
-def safeUnicode(obj, *args):
-    """ return the unicode representation of obj """
+def safeUnicode(obj):
+    """
+        Returns the unicode representation of obj.
+    """
+    
     try:
-        return unicode(obj, *args)
+        return unicode(obj)
     except UnicodeDecodeError:
         # obj is byte string
         ascii_text = str(obj).encode('string_escape')
         return unicode(ascii_text)
 
 def fixEncoding(string):
+    """
+        Attempts to guess the encoding of the given string.
+        
+        If the string encoding is not UTF-8 or ASCII, it attempts to decode it,
+    """
+    
     if isinstance(string, str):
         encodingGuess = chardet.detect(string)['encoding']
         if encodingGuess == 'EUC-TW':
@@ -37,6 +56,10 @@ def fixEncoding(string):
     return string
 
 def formatInt(number):
+    """
+        Returns the number as a string with each three digits separated
+        by a comma.
+    """
     
     number = str(number)
     

@@ -1,9 +1,16 @@
+# coding=utf8
+
 import database
 from contact import Contact
 
 class Message:
     
     def __init__(self, fields):
+        """
+            Initializes a new Message using a dictionary
+            of database fields.
+        """
+        
         self.id = fields['intMessageId']
         self.sender = Contact(fields)
         self.sentDate = fields['datHappened']
@@ -13,11 +20,20 @@ class Message:
             self.summary = self.summary[:77] + '...'
 
     def __str__(self):
+        """
+            A short string representation of the Message.
+            Should be called with unicode(var).
+        """
+        
         date = self.sentDate.strftime('%Y-%m-%d %H:%M')
 
         return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
 
 def getMessages(user, number=50):
+    """
+        Returns a list of the given number of messages
+        that belong to the user.
+    """
     
     sql = """
         SELECT
@@ -42,6 +58,11 @@ def getMessages(user, number=50):
     return [Message(msg) for msg in database.executeManyToDictionary(sql, (user, number))]
 
 def getAllRemoteIds(accountId):
+    """
+        Returns a list of all the remote IDs for an account.
+        This is useful for determining which messages on the server are new.
+    """
+    
     sql = """
         SELECT e.strRemoteId
         FROM mMessage m
@@ -51,7 +72,10 @@ def getAllRemoteIds(accountId):
     return database.executeManyToDictionary(sql, accountId)  
 
 def store(accountId, date, senderId, summary, recipientIds):
-
+    """
+        Stores a message, and return its ID.
+    """    
+    
     sql = """
         INSERT INTO mMessage (intAccountId, datHappened, intSenderId, strSummary)
         VALUES (%s, %s, %s, %s)"""

@@ -1,11 +1,8 @@
+# coding=utf8
+
 import MySQLdb, settings, threading
 
-
 local = threading.local()
-
-def getDatabaseName():
-    dbSettings = settings.getSettings()
-    return dbSettings['database']
     
 def getCursor():
     MySQLdb.use_unicode = True

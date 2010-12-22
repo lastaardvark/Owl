@@ -1,8 +1,15 @@
+# coding=utf8
+
 import database
 
 class Contact:
     
     def __init__(self, fields):
+        """
+            Initializes a new Contact using a dictionary
+            of database fields.
+        """
+        
         self.id = fields['intContactId']
         self.forename = fields['strContactForename']
         self.surname = fields['strContactForename']
@@ -12,7 +19,11 @@ class Contact:
         if 'strContactBestAlias' in fields:
             self.bestAlias = fields['strContactBestAlias']
     
-    def __str__(self):            
+    def __str__(self):
+        """
+            A short string representation of the Contact.
+            Should be called with unicode(var).
+        """
         
         if self.forename and self.surname:
             return self.forename + ' ' + self.surname
@@ -33,6 +44,10 @@ class Contact:
             return '?'
 
 def addContact(user, addressType, address, alias=None):
+    """
+        If the address is unknown, add it. In either case,
+        return the address ID.
+    """
     
     if not address:
         print 'Address is empty'
@@ -72,6 +87,9 @@ def addContact(user, addressType, address, alias=None):
     return contactId
     
 def getContacts(user):
+    """
+        Returns a list of all the contacts of the given user.
+    """
     
     sql = """
         SELECT 
@@ -87,16 +105,4 @@ def getContacts(user):
             AND a.bitBestAddress = 1"""
     
     return [Contact(contact) for contact in database.executeManyToDictionary(sql, user)]
-            
-def getContactFromId(id):
-    
-    sql = """
-        SELECT 
-            c.intId AS intContactId,
-            c.strForename AS strContactForename,
-            c.strSurname AS strContactForename
-        FROM cContact c"""
-    
-    return Contact(database.executeOneToDictionary(sql, user))
-    
     

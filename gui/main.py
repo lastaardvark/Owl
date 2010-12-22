@@ -1,3 +1,5 @@
+# coding=utf8
+
 import os, sys
 
 sys.path.append(os.path.join(os.getcwd()))
@@ -16,6 +18,10 @@ import contact, message, stringFunctions
 class MainWindow(QMainWindow):
 
     def setupMenus(self):
+        """
+            Constructs menus and toolbars
+        """
+        
         exit = QAction(QIcon('gui/icons/close.png'), 'Exit', self)
         exit.setShortcut('Ctrl+Q')
         exit.setStatusTip('Exit application')
@@ -23,7 +29,7 @@ class MainWindow(QMainWindow):
         
         regatherData = QAction('Regather data', self)
         regatherData.setStatusTip('Regather all data')
-        self.connect(regatherData, SIGNAL('triggered()'), self.refetchAll)
+        self.connect(regatherData, SIGNAL('triggered()'), self.downloadNewMessages)
     
         menubar = self.menuBar()
         file = menubar.addMenu('&File')
@@ -35,6 +41,10 @@ class MainWindow(QMainWindow):
     
     
     def __init__(self):
+        """
+            Initialises the main window of the application.
+        """
+        
         QMainWindow.__init__(self)
         self.resize(1100, 800)
         self.setWindowTitle('Owl')
@@ -80,12 +90,23 @@ class MainWindow(QMainWindow):
         centralWidget.setLayout(grid)
         
     def giveCredentials(self, username, password):
+        """
+            This happens once the user has successfully logged in. We store
+            the username and password for future reference, and refresh the
+            contacts and messages listboxes.
+        """
+        
         self.username = username
         self.password = password
         
         self.refreshLists()
     
     def refreshLists(self):
+        """
+            Retrieve up-to-date lists of contacts and messages, and 
+            put them in the relevant list boxes.
+        """
+        
         contacts = contact.getContacts(self.username)
         contacts.sort()        
         self.userList.replaceList([(unicode(c), c) for c in contacts])
@@ -93,22 +114,47 @@ class MainWindow(QMainWindow):
         messages = message.getMessages(self.username, 5000)
         self.messageList.replaceList([(unicode(m), m) for m in messages])
     
-    def createProgressBar(self, maximum):
+    def setProgressBarMaximum(self, maximum):
+        """
+            We call this when we know how many messages to download.
+            It sets the maximum of the progress bar, and changes the label text.
+        """
+        
         self.progress.setMaximum(maximum)
         self.progress.setLabelText('Downloading email 1 of ' + stringFunctions.formatInt(maximum))
     
     def updateProgressBar(self, messagesProcessed):
+        """
+            We call this when we’ve downloaded a message. We advance the bar’s progress,
+            and update the label text. 
+        """
+            
         self.progress.setValue(messagesProcessed)
         self.progress.setLabelText('Downloading email %s of %s...' % \
             (stringFunctions.formatInt(messagesProcessed + 1), stringFunctions.formatInt(self.progress.maximum())))
         
     def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
+        """
+            This method is called from the thread doing the downlaoding.
+            It emits a signal, triggering the progress bar to be updated.
+        """
         self.emit(SIGNAL('updateProgressBar(PyQt_PyObject)'), messagesProcessed)
     
     def cancelMessageRetrieval(self):
+        """
+            Stop downloading more messages.
+        """
+        
         self.gatherData.stop()
     
     def fetchMessagesThread(self):
+        """
+            This is the main method of the thread to download messages.
+            It first determines how many messages there are to download, and
+            emits a signal to update the GUI. It then downloads the messages
+            and emits a signal to refresh the lists.
+        """
+        
         self.gatherData = GatherData(self.username, self.password)
         
         newMessageCount = self.gatherData.countNewMessages()
@@ -118,14 +164,19 @@ class MainWindow(QMainWindow):
         
         self.emit(SIGNAL('refreshLists()'))
         
-    def refetchAll(self):
+    def downloadNewMessages(self):
+        """
+            Starts a thread that downloads all the new messages for the user’s
+            accounts
+        """
+        
         self.progress = QProgressDialog('Looking for emails...', 'Cancel', 0, 10)
         self.progress.resize(400, 50)
         self.progress.show()
         
         thread = Thread(None, self.fetchMessagesThread, 'Fetch messages')
         
-        self.connect(self, SIGNAL('receivedMessageCount(PyQt_PyObject)'), self.createProgressBar)
+        self.connect(self, SIGNAL('receivedMessageCount(PyQt_PyObject)'), self.setProgressBarMaximum)
         self.connect(self, SIGNAL('updateProgressBar(PyQt_PyObject)'), self.updateProgressBar)
         self.connect(self, SIGNAL('refreshLists()'), self.refreshLists)
         self.connect(self.progress, SIGNAL('canceled()'), self.cancelMessageRetrieval) 
@@ -142,6 +193,10 @@ app = QApplication(sys.argv)
 main = MainWindow()
 
 def afterLogin(username, password):
+    """
+        This is called immediately after the user has successfully logged in.
+        We show the main screen, and supply it with the user’s credentials.
+    """
     main.giveCredentials(username, password)
     main.show()
     

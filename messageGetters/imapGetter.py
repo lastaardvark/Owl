@@ -1,4 +1,7 @@
-from imapEmail import imapEmail
+# coding=utf8
+
+from imapEmail import ImapEmail
+import emailMessage
 import email, HTMLParser, os, re, sys
 
 sys.path.append(os.path.join(os.getcwd()))
@@ -6,6 +9,10 @@ sys.path.append(os.path.join(os.getcwd()))
 import contact, database, encryption, message, settings, stringFunctions
 
 def reset():
+    """
+        Temporary.
+    """
+    
     sql = "DELETE FROM mRecipient"   
     database.execute(sql).close()
     
@@ -32,6 +39,10 @@ def reset():
 class ImapGetter:
     
     def __init__(self, username, account, encryptionKey = None):
+        """
+            Creates a new ImapGetter, with a user and a dictionary of account details.
+            If an encryption key is given, it uses this to encrypt the bodies of emails.
+        """
         self.username = username
         self.account = account
         self.encryptionKey = encryptionKey
@@ -40,11 +51,19 @@ class ImapGetter:
         #reset()
     
     def _connect(self):
-        server = imapEmail(self.account['strEmailAddress'], self.account['strServer'], self.account['intPort'])
+        """
+            Connect and log-into the IMAP server.
+        """
+        
+        server = ImapEmail(self.account['strEmailAddress'], self.account['strServer'], self.account['intPort'])
         server.login(self.account['strUsername'], self.account['strPassword'])
         return server
         
     def getNewMessageIds(self):
+        """
+            Returns the remote IDs of any new messages on the server.
+        """
+        
         server = self._connect()
         serverIds = [str(msgId) for msgId in server.getMailIds()]
         server.logout()
@@ -54,6 +73,13 @@ class ImapGetter:
         return [msg for msg in serverIds if storedIds.count(msg) == 0]
         
     def downloadNewMessages(self, ids = None, progressBroadcaster = None):
+        """
+            Download any new messages from the server.
+            If the remote IDs are already known, they can be passed in as ids.
+            If a progressBroadcaster function is specified, it will be called after each
+            message is stored.
+        """
+        
         if not ids:
             ids = self.getNewMessageIds()
         
@@ -75,6 +101,11 @@ class ImapGetter:
     
 
     def _downloadEmail(self, id, server):
+        """
+            Downloads the email with the given remote ID and stores
+            it in the database.
+        """
+        
         email = server.getMailFromId(id)
         
         body = email['body']
@@ -91,13 +122,13 @@ class ImapGetter:
         
         messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
         
-        sql = """
-            INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strRaw)
-            VALUES (%s, %s, %s, %s, %s)"""
-        
-        database.execute(sql, (messageId, id, email['subject'], body, raw)).close()
+        emailMessage.store(messageId, id, email['subject'], body, raw)
     
     def stop(self):
+        """
+            Stops us fetching any more messages once the current message has finished.
+        """
+        
         self.needToStop = True
         
 if __name__ == '__main__':

@@ -1,6 +1,11 @@
+# coding=utf8
+
 import database, encryption, settings
 
 def checkLogin(username, password):
+    """
+        Validates a login
+    """
     
     encryptedPassword = encryption.encrypt(settings.settings['loginPasswordEncryptionKey'], password)
     

@@ -20,15 +20,32 @@ EncodeAES = lambda c, s: base64.b64encode(c.encrypt(pad(s)))
 DecodeAES = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(PADDING)
 
 def getRandomKey():
+    """
+        Returns a random key.
+    """
+    
     return os.urandom(BLOCK_SIZE)
 
 def getCipherFromKey(key):
+    """
+        Returns an AES cipher from a given key
+    """
+    
     return AES.new(key)
     
 def getCipherFromPassword(password):    
+    """
+        Returns an AES cipher using a hash of the given password
+    """
+        
     return getCipherFromKey(hashlib.sha256(password).digest())
 
 def encrypt(password, string):
+    """
+        Encrypts the given string with an AES cipher
+        based upon the given password.
+    """
+    
     cipher = getCipherFromPassword(password)
     try:
         string = string.encode("utf8")
@@ -38,5 +55,10 @@ def encrypt(password, string):
     return EncodeAES(cipher, string)
 
 def decrypt(password, string):
+    """
+        Decrypts the given string using an AES cipher
+        based upon the given password.
+    """
+    
     cipher = getCipherFromPassword(password)
     return DecodeAES(cipher, string)
