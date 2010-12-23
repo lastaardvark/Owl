@@ -98,18 +98,28 @@ class MainWindow(QMainWindow):
         
         self.refreshLists()
     
+    def refreshListsLocally(self):
+        """
+            Put the contents of self.contacts and self.messages
+            back into the list boxes. Used if a contact or message
+            has been changed locally.
+        """
+        
+        self.contacts = sorted(self.contacts, key = lambda contact: unicode(contact))
+        self.userList.replaceList([(unicode(c), c) for c in self.contacts])
+        self.messageList.replaceList([(unicode(m), m) for m in self.messages])
+        
+        
     def refreshLists(self):
         """
-            Retrieve up-to-date lists of contacts and messages, and 
-            put them in the relevant list boxes.
+            Retrieve up-to-date lists of contacts and messages from the database,
+            and put them in the relevant list boxes.
         """
         
-        self.contacts = contact.getContacts(self.username)
-        self.contacts.sort()        
-        self.userList.replaceList([(unicode(c), c) for c in self.contacts])
+        self.contacts = contact.getContacts(self.username)        
+        self.messages = message.getMessages(self.username, 5000)
         
-        messages = message.getMessages(self.username, 5000)
-        self.messageList.replaceList([(unicode(m), m) for m in messages])
+        self.refreshListsLocally()
     
     def setProgressBarMaximum(self, maximum):
         """

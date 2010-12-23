@@ -64,5 +64,5 @@ class EditContact(QWidget):
         self.contact.forename = unicode(self.forenameLineEdit.text())
         self.contact.surname = unicode(self.surnameLineEdit.text())
         contact.updateContact(self.username, self.contact.id, self.contact.forename, self.contact.surname)
-        self.mainWindow.userList.replaceList([(unicode(c), c) for c in self.mainWindow.contacts])
+        self.mainWindow.refreshListsLocally()
         self.close()
