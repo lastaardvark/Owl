@@ -13,6 +13,7 @@ class Contact:
         self.id = fields['intContactId']
         self.forename = fields['strContactForename']
         self.surname = fields['strContactForename']
+        self.addresses = []
         
         if 'strContactBestAddress' in fields:
             self.bestAddress = fields['strContactBestAddress']
@@ -42,7 +43,23 @@ class Contact:
             
         else:
             return '?'
-
+    
+    def getAddresses(self):
+        """
+            Returns a list of known addresses for this contact
+        """
+        
+        if not self.addresses:
+            sql = """
+                SELECT enmAddressType, strAddress
+                FROM cAddress
+                WHERE intContactId = %s
+                ORDER BY enmAddressType, strAddress"""
+            
+            self.addresses = database.executeManyToDictionary(sql, self.id)
+        
+        return self.addresses
+        
 def addContact(user, addressType, address, alias=None):
     """
         If the address is unknown, add it. In either case,

@@ -4,7 +4,7 @@ import os, sys
 
 sys.path.append(os.path.join(os.getcwd()))
 
-from PyQt4.QtGui import QLabel, QLineEdit, QPushButton, QWidget
+from PyQt4.QtGui import QGridLayout, QLabel, QLineEdit, QPushButton, QWidget
 from PyQt4.QtCore import Qt, SIGNAL, SLOT
 
 from autoCompleteListBox import AutoCompleteListBox
@@ -24,13 +24,18 @@ class EditContact(QWidget):
         self.addressListLabel = QLabel('Addresses')
         self.forenameLabel = QLabel('Forename')
         self.surnameLabel = QLabel('Surname')
-                
-        self.addresses = AutoCompleteListBox(self, contact.getAddresses)
+        
+        addresses = self.contact.getAddresses()
+        addresses = [("%s: %s" % (address['enmAddressType'], address['strAddress']), address['strAddress']) for address in addresses]
+        self.addresses = AutoCompleteListBox(self, addresses)
         self.forenameLineEdit = QLineEdit()
         self.surnameLineEdit = QLineEdit()
         
-        self.forenameLineEdit.setText(self.contact.forename)
-        self.surnameLineEdit(self.contact.surname)
+        if self.contact.forename:
+            self.forenameLineEdit.setText(self.contact.forename)
+        
+        if self.contact.surname:
+            self.surnameLineEdit(self.contact.surname)
         
         saveButton = QPushButton('Save')
         cancelButton = QPushButton('Cancel')
@@ -38,19 +43,22 @@ class EditContact(QWidget):
         grid = QGridLayout()
         grid.setSpacing(10)
         
-        grid.addWidget(self.addressListLabel, 0, 0)
+        grid.addWidget(self.addressListLabel, 1, 0)
         grid.addWidget(self.forenameLabel, 2, 0)
         grid.addWidget(self.surnameLabel, 3, 0)
         
-        grid.addWidget(self.addressListLabel.getLineEdit(), 0, 1)
-        grid.addWidget(self.addressListLabel.getLineEdit(), 1, 1)
-        grid.addWidget(self.forenameLineEdit, 2, 1)
-        grid.addWidget(self.surnameLineEdit, 3, 1)
+        grid.addWidget(self.addresses.getLineEdit(), 0, 1, 1, 2)
+        grid.addWidget(self.addresses.getListBox(), 1, 1, 1, 2)
+        grid.addWidget(self.forenameLineEdit, 2, 1, 1, 2)
+        grid.addWidget(self.surnameLineEdit, 3, 1, 1, 2)
         
-        centralWidget.setLayout(grid)
+        grid.addWidget(saveButton, 4, 1)
+        grid.addWidget(cancelButton, 4, 2)
+        
+        self.setLayout(grid)
     
-        self.connect(cancelButton, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        self.connect(saveButton, QtCore.SIGNAL('clicked()'), self.save)
+        self.connect(cancelButton, SIGNAL('clicked()'), SLOT('close()'))
+        self.connect(saveButton, SIGNAL('clicked()'), self.save)
     
     def save(self):
         self.contact.forename = unicode(self.forenameLineEdit.text())
