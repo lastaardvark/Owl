@@ -138,6 +138,11 @@ def getContacts(user):
     return [Contact(contact) for contact in database.executeManyToDictionary(sql, user)]
 
 def mergeContacts(contacts):
+    """
+        Merges a list of contacts into one.
+        
+        Note that this operation loses data, and so cannot be undone.
+    """
     
     if len(contacts) < 2:
         print 'Too few contacts given to merge'
@@ -145,6 +150,7 @@ def mergeContacts(contacts):
     
     moribundIds = ', '.join([str(contact.id) for contact in contacts[1:]])
     
+    # Move all addresses to the alagamated contact
     sql = """
         UPDATE IGNORE cAddress
         SET intContactId = %s,
@@ -153,12 +159,14 @@ def mergeContacts(contacts):
     
     database.execute(sql, contacts[0].id).close()
     
+    # Remove any addresses that are duplicates
     sql = """
         DELETE FROM cAddress
         WHERE intContactId IN (""" + moribundIds + ")"
     
     database.execute(sql).close()
     
+    # Update the amalgamated contact’s surname if it hasn’t got one, but a moribund contact has.
     sql = """
         UPDATE cContact o, cContact n
         SET o.strSurname = n.strSurname
@@ -169,6 +177,7 @@ def mergeContacts(contacts):
             
     database.execute(sql, contacts[0].id).close()
     
+    # Update the amalgamated contact’s forename if it hasn’t got one, but a moribund contact has.
     sql = """
         UPDATE cContact o, cContact n
         SET o.strForename = n.strForename
@@ -179,6 +188,7 @@ def mergeContacts(contacts):
             
     database.execute(sql, contacts[0].id).close()
     
+    # Update the recipients of any affected messages to the amalgamated contact.
     sql = """
         UPDATE IGNORE mRecipient
         SET intContactId = %s
@@ -186,14 +196,22 @@ def mergeContacts(contacts):
         
     database.execute(sql, contacts[0].id).close()
     
+    # Remove any duplicate recipients.
     sql = """
-        UPDATE IGNORE mMessage
+        DELETE FROM mRecipient
+        WHERE intContactId IN (""" + moribundIds + ")"
+    
+    database.execute(sql).close()
+    
+    # Update the senders of any affected messages to the amalgamated contact.
+    sql = """
+        UPDATE mMessage
         SET intSenderId = %s
         WHERE intSenderId IN (""" + moribundIds + ")"
         
     database.execute(sql, contacts[0].id).close()
-        
     
+    # Delete all but the amalgamated contact.    
     sql = """
         DELETE FROM cContact
         WHERE intId IN (""" + moribundIds + ")"

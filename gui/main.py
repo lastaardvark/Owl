@@ -212,10 +212,18 @@ class MainWindow(QMainWindow):
             editContact.show()
 	
     def hideOrShowMergeButton(self):
+        """
+            Enables or disables the merge button, depending on whether or not
+            two or more contacts are selected, respectively.
+        """
+        
         contacts = self.userList.getSelectedItems()
         self.mergeButton.setEnabled(contacts != None and len(contacts) > 1)
 
     def mergeContacts(self):
+        """
+            Ask the user whether they want to merge the contacts that are selected in the list box.
+        """
         merge = MergeDialog(self.userList.getSelectedItems())
         merge.accepted.connect(self.refreshLists)
         merge.show()
