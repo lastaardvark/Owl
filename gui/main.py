@@ -4,8 +4,9 @@ import os, sys
 
 sys.path.append(os.path.join(os.getcwd()))
 
-from PyQt4.QtGui import QAction, QApplication, QGridLayout, QFrame, QIcon
-from PyQt4.QtGui import QLabel, QLineEdit, QListView, QMainWindow, QProgressDialog, QWidget
+from PyQt4.QtGui import QAbstractItemView, QAction, QApplication, QGridLayout, QFrame, QIcon
+from PyQt4.QtGui import QLabel, QLineEdit, QListView, QMainWindow, QProgressDialog, QPushButton
+from PyQt4.QtGui import QWidget
 from PyQt4.QtCore import Qt, SIGNAL, SLOT
 from threading import Thread
 from loginBox import LoginBox
@@ -46,9 +47,10 @@ class MainWindow(QMainWindow):
         """
         
         QMainWindow.__init__(self)
-        self.resize(1100, 800)
         self.setWindowTitle('Owl')
-                
+        #self.resize()
+        self.setGeometry(10, 10, 1100, 800)
+        
         self.status = self.statusBar()
         self.status.showMessage('Ready')
         
@@ -59,12 +61,17 @@ class MainWindow(QMainWindow):
         
         self.userList = AutoCompleteListBox(self, [])
         self.messageList = AutoCompleteListBox(self, [])
-                
+        
         box = self.userList.getListBox()
+        box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         box.doubleClicked.connect(self.showEditContact)
+        box.clicked.connect(self.hideOrShowMergeButton)
         
         frame = QFrame()
         frame.setFrameStyle(QFrame.VLine | QFrame.Raised)
+        
+        self.mergeButton = QPushButton('Merge')
+        self.mergeButton.setEnabled(False)
         
         centralWidget = QWidget()
         self.setCentralWidget(centralWidget)
@@ -83,6 +90,8 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.messageList.getListBox(), 2, 2)
         
         grid.addWidget(frame, 0, 1, 3, 1)
+        
+        grid.addWidget(self.mergeButton, 3, 0)
                 
         centralWidget.setLayout(grid)
         
@@ -189,13 +198,20 @@ class MainWindow(QMainWindow):
         self.connect(self.progress, SIGNAL('canceled()'), self.cancelMessageRetrieval) 
         
         thread.start()
-   
+    
     def showEditContact(self):
+    	"""
+    		If a single contact is selected, opens the Edit Contact screen for that contact.
+    	"""
+    	
         contacts = self.userList.getSelectedItems()
         if len(contacts) == 1:
             editContact = EditContact(self, self.username, contacts[0])
             editContact.show()
-
+	
+    def hideOrShowMergeButton(self):
+		self.mergeButton.setEnabled(len(self.userList.getSelectedItems()) > 1)
+			
 app = QApplication(sys.argv)
 
 main = MainWindow()

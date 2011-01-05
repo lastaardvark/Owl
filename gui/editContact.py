@@ -35,7 +35,7 @@ class EditContact(QWidget):
             self.forenameLineEdit.setText(self.contact.forename)
         
         if self.contact.surname:
-            self.surnameLineEdit(self.contact.surname)
+            self.surnameLineEdit.setText(self.contact.surname)
         
         saveButton = QPushButton('Save')
         cancelButton = QPushButton('Cancel')
