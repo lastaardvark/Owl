@@ -12,7 +12,7 @@ class Contact:
         
         self.id = fields['intContactId']
         self.forename = fields['strContactForename']
-        self.surname = fields['strContactForename']
+        self.surname = fields['strContactSurname']
         self.addresses = []
         
         if 'strContactBestAddress' in fields:
@@ -126,7 +126,7 @@ def getContacts(user):
         SELECT 
             c.intId AS intContactId,
             c.strForename AS strContactForename,
-            c.strSurname AS strContactForename,
+            c.strSurname AS strContactSurname,
             a.strAddress AS strContactBestAddress,
             a.strAlias AS strContactBestAlias
         FROM cContact c
@@ -136,4 +136,69 @@ def getContacts(user):
             AND a.bitBestAddress = 1"""
     
     return [Contact(contact) for contact in database.executeManyToDictionary(sql, user)]
+
+def mergeContacts(contacts):
+    
+    if len(contacts) < 2:
+        print 'Too few contacts given to merge'
+        return
+    
+    moribundIds = ', '.join([str(contact.id) for contact in contacts[1:]])
+    
+    sql = """
+        UPDATE IGNORE cAddress
+        SET intContactId = %s,
+            bitBestAddress = 0
+        WHERE intContactId IN (""" + moribundIds + ")"
+    
+    database.execute(sql, contacts[0].id).close()
+    
+    sql = """
+        DELETE FROM cAddress
+        WHERE intContactId IN (""" + moribundIds + ")"
+    
+    database.execute(sql).close()
+    
+    sql = """
+        UPDATE cContact o, cContact n
+        SET o.strSurname = n.strSurname
+        WHERE o.intId = %s
+            AND IFNULL(o.strSurname, '') = ''
+            AND IFNULL(n.strSurname, '') != ''
+            AND n.intId IN (""" + moribundIds + ")"
+            
+    database.execute(sql, contacts[0].id).close()
+    
+    sql = """
+        UPDATE cContact o, cContact n
+        SET o.strForename = n.strForename
+        WHERE o.intId = %s
+            AND IFNULL(o.strForename, '') = ''
+            AND IFNULL(n.strForename, '') != ''
+            AND n.intId IN (""" + moribundIds + ")"
+            
+    database.execute(sql, contacts[0].id).close()
+    
+    sql = """
+        UPDATE IGNORE mRecipient
+        SET intContactId = %s
+        WHERE intContactId IN (""" + moribundIds + ")"
+        
+    database.execute(sql, contacts[0].id).close()
+    
+    sql = """
+        UPDATE IGNORE mMessage
+        SET intSenderId = %s
+        WHERE intSenderId IN (""" + moribundIds + ")"
+        
+    database.execute(sql, contacts[0].id).close()
+        
+    
+    sql = """
+        DELETE FROM cContact
+        WHERE intId IN (""" + moribundIds + ")"
+    
+    database.execute(sql).close()
+    
+    
     

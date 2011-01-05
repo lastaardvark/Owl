@@ -13,6 +13,7 @@ from loginBox import LoginBox
 from editContact import EditContact
 from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
+from mergeContacts import MergeDialog
 
 import contact, message, stringFunctions
 
@@ -72,6 +73,7 @@ class MainWindow(QMainWindow):
         
         self.mergeButton = QPushButton('Merge')
         self.mergeButton.setEnabled(False)
+        self.mergeButton.clicked.connect(self.mergeContacts)
         
         centralWidget = QWidget()
         self.setCentralWidget(centralWidget)
@@ -210,8 +212,14 @@ class MainWindow(QMainWindow):
             editContact.show()
 	
     def hideOrShowMergeButton(self):
-		self.mergeButton.setEnabled(len(self.userList.getSelectedItems()) > 1)
-			
+        contacts = self.userList.getSelectedItems()
+        self.mergeButton.setEnabled(contacts != None and len(contacts) > 1)
+
+    def mergeContacts(self):
+        merge = MergeDialog(self.userList.getSelectedItems())
+        merge.accepted.connect(self.refreshLists)
+        merge.show()
+	
 app = QApplication(sys.argv)
 
 main = MainWindow()
