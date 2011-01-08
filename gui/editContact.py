@@ -28,6 +28,7 @@ class EditContact(QWidget):
         addresses = self.contact.getAddresses()
         addresses = [("%s: %s" % (address['enmAddressType'], address['strAddress']), address['strAddress']) for address in addresses]
         self.addresses = AutoCompleteListBox(self, addresses)
+        self.addresses.getLineEdit().hide()
         self.forenameLineEdit = QLineEdit()
         self.surnameLineEdit = QLineEdit()
         
