@@ -24,14 +24,15 @@ class Email(Message):
             self.raw = fields["strRaw"]
     
 
-def store(messageId, remoteId, subject, body, raw):
+def store(messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     """
         Stores the given email to the database. The message
         should be stored first, to give a messageId.
     """
     
     sql = """
-        INSERT INTO mEmail (intMessageId, strRemoteId, strSubject, strBody, strRaw)
-        VALUES (%s, %s, %s, %s, %s)"""
+        INSERT INTO mEmail 
+            (intMessageId, strRemoteId, strSubject, strBodyPlainText, strBodyHtml, strRaw)
+        VALUES (%s, %s, %s, %s, %s, %s)"""
     
-    database.execute(sql, (messageId, remoteId, subject, body, raw)).close()
+    database.execute(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw)).close()

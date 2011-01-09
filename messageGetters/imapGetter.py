@@ -108,11 +108,13 @@ class ImapGetter:
         
         email = server.getMailFromId(id)
         
-        body = email['body']
+        bodyPlain = email['bodyPlainText']
+        bodyHtml = email['bodyHtml']
         raw = email['raw']
             
         if self.encryptionKey:
-            body = encryption.encrypt(self.encryptionKey, body)
+            bodyPlain = encryption.encrypt(self.encryptionKey, bodyPlain)
+            bodyHtml = encryption.encrypt(self.encryptionKey, bodyHtml)
             raw = encryption.encrypt(self.encryptionKey, raw)
                         
         alias, address = email['from']
@@ -122,7 +124,7 @@ class ImapGetter:
         
         messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
         
-        emailMessage.store(messageId, id, email['subject'], body, raw)
+        emailMessage.store(messageId, id, email['subject'], bodyPlain, bodyHtml, raw)
     
     def stop(self):
         """

@@ -109,9 +109,20 @@ class ImapEmail(object):
                 recipients = msg.get_all('to', []) + msg.get_all('cc', []) + msg.get_all('bcc', [])
                 recipients += msg.get_all('resent-to', []) + msg.get_all('resent-cc', [])
                 
-                rtn['body'] = self._extractBody(msg, True)
-                                
-                rtn['body'] = stringFunctions.fixEncoding(rtn['body'])
+                rtn['bodyPlainText'] = u''
+                rtn['bodyHtml'] = u''
+                
+                components = self._extractBody(msg, True)
+                
+                for component in components:
+                    if component:
+                        component = stringFunctions.fixEncoding(component)
+                    
+                    if component.find('<html') > 0 or component.find('</html') > 0:
+                        rtn['bodyHtml'] = component
+                    else:
+                        rtn['bodyPlainText'] = component
+                
                 rtn['subject'] = stringFunctions.fixEncoding(rtn['subject'])
                 
                 recipients = email.Utils.getaddresses(recipients)
@@ -142,7 +153,7 @@ class ImapEmail(object):
             that aren’t attachments.
         """
         if msg.is_multipart():
-            rtn = ''
+            rtn = []
             for subMessage in msg.get_payload():
                 # Not an attachment
                 if not subMessage.get_filename(): 
@@ -150,9 +161,9 @@ class ImapEmail(object):
             return rtn
         else:
             if msg.get_filename(): 
-                return ''
+                return []
             else:
-                return msg.get_payload(decode=decode)
+                return [msg.get_payload(decode=decode)]
     
     def logout(self):
         """
