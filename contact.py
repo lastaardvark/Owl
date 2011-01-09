@@ -16,6 +16,13 @@ class Contact:
         self.surname = fields['strContactSurname']
         self.companyName = fields['strContactCompanyName']
         self.isPerson = fields['bitContactIsPerson']
+        
+        if self.isPerson == 1:
+            self.isPerson = True
+        elif self.isPerson == 0:
+            self.isPerson = False
+        # Otherwise leave as None
+        
         self.addresses = []
         
         if 'strContactBestAddress' in fields:

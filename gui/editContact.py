@@ -58,12 +58,15 @@ class EditContact(QWidget):
         
         self.setLayout(grid)
         
-        if contact.isPerson:
+        if contact.isPerson == True:
             self.personRadio.setChecked(True)
             self.switchToPerson()
-        else:
+        elif contact.isPerson == False:
             self.companyRadio.setChecked(True)
             self.switchToCompany()
+        else:
+            self.personWidget.hide()
+            self.companyWidget.hide()
         
         self.connect(cancelButton, SIGNAL('clicked()'), SLOT('close()'))
         self.connect(saveButton, SIGNAL('clicked()'), self.save)
