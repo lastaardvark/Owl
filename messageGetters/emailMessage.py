@@ -19,11 +19,23 @@ class Email(Message):
         
         self.remoteId = fields["intEmailRemoteId"]
         self.subject = fields["strEmailSubject"]
-        self.body = fields["strEmailBody"]
+        self.bodyPlain = fields["strEmailBodyPlainText"]
+        self.bodyHtml = fields["strEmailBodyHtml"]
         if fields["strRaw"]:
             self.raw = fields["strRaw"]
     
-
+def getEmailFromId(messageId):
+    
+    sql = """
+        SELECT
+            intRemoteId AS intEmailRemoteId,
+            strSubject AS strEmailSubject,
+            strBodyPlainText AS strEmailBodyPlainText,
+            strBodyHtml AS strEmailBodyHtml
+        WHERE intMessageId = %s"""
+    
+    return Email(database.executeOneToDictionary(sql, messageId))
+    
 def store(messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     """
         Stores the given email to the database. The message
@@ -32,7 +44,7 @@ def store(messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     
     sql = """
         INSERT INTO mEmail 
-            (intMessageId, strRemoteId, strSubject, strBodyPlainText, strBodyHtml, strRaw)
+            (intMessageId, intRemoteId, strSubject, strBodyPlainText, strBodyHtml, strRaw)
         VALUES (%s, %s, %s, %s, %s, %s)"""
     
     database.execute(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw)).close()

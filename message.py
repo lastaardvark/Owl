@@ -39,7 +39,7 @@ def getMessages(user, number=50):
         SELECT
             m.intId AS intMessageId,
             m.strSummary, m.datHappened,
-            e.strRemoteId,
+            e.intRemoteId,
             c.intId AS intContactId,
             c.strForename AS strContactForename,
             c.strSurname AS strContactSurname,
@@ -66,7 +66,7 @@ def getAllRemoteIds(accountId):
     """
     
     sql = """
-        SELECT e.strRemoteId
+        SELECT e.intRemoteId
         FROM mMessage m
             INNER JOIN mEmail e ON e.intMessageId = m.intId
         WHERE m.intAccountId = %s"""

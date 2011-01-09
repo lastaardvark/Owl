@@ -65,11 +65,11 @@ class ImapGetter:
         """
         
         server = self._connect()
-        serverIds = [str(msgId) for msgId in server.getMailIds()]
+        serverIds = [msgId for msgId in server.getMailIds()]
         server.logout()
         
-        storedIds = [msg['strRemoteId'] for msg in message.getAllRemoteIds(self.account['intAccountId'])]
-        
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'])]
+
         return [msg for msg in serverIds if storedIds.count(msg) == 0]
         
     def downloadNewMessages(self, ids = None, progressBroadcaster = None):
