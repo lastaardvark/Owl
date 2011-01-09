@@ -221,6 +221,17 @@ def mergeContacts(contacts):
             
     database.execute(sql, contacts[0].id).close()
     
+    # Update the amalgamated contact’s type if it hasn’t got one, but a moribund contact has.
+    sql = """
+        UPDATE cContact o, cContact n
+        SET o.bitIsPerson = n.bitIsPerson
+        WHERE o.intId = %s
+            AND o.bitIsPerson IS NULL
+            AND n.bitIsPerson IS NOT NULL
+            AND n.intId IN (""" + moribundIds + ")"
+            
+    database.execute(sql, contacts[0].id).close()
+    
     # Update the recipients of any affected messages to the amalgamated contact.
     sql = """
         UPDATE IGNORE mRecipient
