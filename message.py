@@ -15,6 +15,8 @@ class Message:
         self.sender = Contact(fields)
         self.sentDate = fields['datHappened']
         self.summary = fields['strSummary'].replace(u'\n', u'')
+        if fields['strMessageType'] == 'imap':
+            self.type = 'email'
         
         if len(self.summary) > 77:
             self.summary = self.summary[:77] + '...'
@@ -39,6 +41,7 @@ def getMessages(user, number=50):
         SELECT
             m.intId AS intMessageId,
             m.strSummary, m.datHappened,
+            ac.enmType AS strMessageType,
             e.intRemoteId,
             c.intId AS intContactId,
             c.strForename AS strContactForename,

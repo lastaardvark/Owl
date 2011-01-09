@@ -32,6 +32,7 @@ def getEmailFromId(messageId):
             strSubject AS strEmailSubject,
             strBodyPlainText AS strEmailBodyPlainText,
             strBodyHtml AS strEmailBodyHtml
+        FROM mEmail
         WHERE intMessageId = %s"""
     
     return Email(database.executeOneToDictionary(sql, messageId))

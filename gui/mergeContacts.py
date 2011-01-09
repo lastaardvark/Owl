@@ -24,10 +24,7 @@ class MergeDialog(QDialog):
         self.setWindowTitle('Merge Contacts?')
         self.setModal(True)
         self.setSizeGripEnabled(False)
-        
-        # Something of a comfort blanket. Go on, you take it from him.
-        self.addresses = AutoCompleteListBox(self, [])
-        
+                
         okButton = QPushButton('Merge')
         cancelButton = QPushButton('Cancel')
         

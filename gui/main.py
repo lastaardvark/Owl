@@ -14,6 +14,8 @@ from editContact import EditContact
 from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
 from mergeContacts import MergeDialog
+from messageViewers.viewEmail import ViewEmail
+from messageGetters import emailMessage
 
 import contact, message, stringFunctions
 
@@ -67,6 +69,8 @@ class MainWindow(QMainWindow):
         box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         box.doubleClicked.connect(self.showEditContact)
         box.clicked.connect(self.hideOrShowMergeButton)
+        
+        self.messageList.getListBox().doubleClicked.connect(self.showMessage)
         
         frame = QFrame()
         frame.setFrameStyle(QFrame.VLine | QFrame.Raised)
@@ -208,9 +212,21 @@ class MainWindow(QMainWindow):
     	
         contacts = self.userList.getSelectedItems()
         if len(contacts) == 1:
-            editContact = EditContact(self, self.username, contacts[0])
-            editContact.show()
+            self.editContact = EditContact(self, self.username, contacts[0])
+            self.editContact.show()
 	
+    def showMessage(self):
+    	"""
+	        If a message is selected, opens the show message screen for that message.
+    	"""
+    	
+        messages = self.messageList.getSelectedItems()
+        
+        if len(messages) == 1:
+            if messages[0].type == 'email':
+                self.viewMessage = ViewEmail(messages[0].id)
+            self.viewMessage.show()
+    
     def hideOrShowMergeButton(self):
         """
             Enables or disables the merge button, depending on whether or not
@@ -224,9 +240,9 @@ class MainWindow(QMainWindow):
         """
             Ask the user whether they want to merge the contacts that are selected in the list box.
         """
-        merge = MergeDialog(self.userList.getSelectedItems())
-        merge.accepted.connect(self.refreshLists)
-        merge.show()
+        self.mergeDialog = MergeDialog(self.userList.getSelectedItems())
+        self.mergeDialog.accepted.connect(self.refreshLists)
+        self.mergeDialog.show()
 	
 app = QApplication(sys.argv)
 
