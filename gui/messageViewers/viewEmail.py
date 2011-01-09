@@ -23,3 +23,5 @@ class ViewEmail(ViewMessage):
         grid.setSpacing(10)
         grid.addWidget(subjectLabel, 0, 0)
         grid.addWidget(bodyLabel, 1, 0)
+        
+        self.mainView.setLayout(grid)
