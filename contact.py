@@ -2,6 +2,9 @@
 
 import database
 
+_contacts = {}
+_user = ''
+
 class Contact:
     
     def __init__(self, fields):
@@ -10,18 +13,22 @@ class Contact:
             of database fields.
         """
         
-        self.id = fields['intContactId']
+        self.id = int(fields['intContactId'])
         
-        self.forename = fields['strContactForename']
-        self.surname = fields['strContactSurname']
-        self.companyName = fields['strContactCompanyName']
-        self.isPerson = fields['bitContactIsPerson']
-        
-        if self.isPerson == 1:
-            self.isPerson = True
-        elif self.isPerson == 0:
-            self.isPerson = False
-        # Otherwise leave as None
+        if 'strContactForename' in fields:
+            self.forename = fields['strContactForename']
+        if 'str_contactsurname' in fields:
+            self.surname = fields['str_contactsurname']
+        if 'strContactCompanyName' in fields:
+            self.companyName = fields['strContactCompanyName']
+        if 'bitContactIsPerson' in fields:
+            self.isPerson = fields['bitContactIsPerson']
+            
+            if self.isPerson == 1:
+                self.isPerson = True
+            elif self.isPerson == 0:
+                self.isPerson = False
+            # Otherwise leave as None
         
         self.addresses = []
         
@@ -88,8 +95,13 @@ class Contact:
             WHERE intId = %s"""
         
         database.execute(sql, (self.forename, self.surname, self.companyName, self.isPerson, self.id)).close()
-        
-def addContact(user, addressType, address, alias=None):
+
+def initialize(user):
+    global _user
+    _user = user
+    refresh()
+
+def addEmptyContact(addressType, address, alias=None):
     """
         If the address is unknown, add it. In either case,
         return the address ID.
@@ -109,7 +121,7 @@ def addContact(user, addressType, address, alias=None):
             AND a.enmAddressType = %s
             AND a.strAddress = %s"""
     
-    result = database.executeOneToDictionary(sql, (user, addressType, address))
+    result = database.executeOneToDictionary(sql, (_user, addressType, address))
     
     if result == None:
         
@@ -117,7 +129,7 @@ def addContact(user, addressType, address, alias=None):
             INSERT INTO cContact (strUser)
             VALUES (%s)"""
         
-        cursor = database.execute(sql, user)
+        cursor = database.execute(sql, _user)
         
         contactId = cursor.lastrowid
         cursor.close()
@@ -128,20 +140,56 @@ def addContact(user, addressType, address, alias=None):
         
         database.execute(sql, (contactId, addressType, address, alias)).close()
     else:
-        contactId = result['intContactId']
-        
+        contactId = int(result['intContactId'])
+    
+    _contacts[contactId] = Contact({"intContactId": contactId})
+    
     return contactId
+
+def getContactFromFields(fields):
+    contact = Contact(fields)
+    _contacts[contact.id] = contact
+    return contact
+
+def getContactFromId(id):
+    id = int(id)
     
-def getContacts(user):
-    """
-        Returns a list of all the contacts of the given user.
-    """
+    if id in _contacts:
+        return _contacts[id]
+    else:                       # The user, for example
+        sql = """
+            SELECT 
+                c.intId AS intContactId,
+                c.strForename AS strContactForename,
+                c.strSurname AS str_contactsurname,
+                c.strCompanyName AS strContactCompanyName,
+                CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
+                a.strAddress AS strContactBestAddress,
+                a.strAlias AS strContactBestAlias
+            FROM cContact c
+                INNER JOIN cAddress a ON c.intId = a.intContactId
+            WHERE c.intId = %s
+                AND a.bitBestAddress = 1"""
+        
+        contact = Contact(database.executeOneToDictionary(sql, id))
+        _contacts[contact.id] = contact
+        return contact
+        
     
+def getContacts():
+    return _contacts.values()
+
+def refresh():
+    """
+        Refreshes the contact list to match the database.
+    """
+    global _contacts
+
     sql = """
         SELECT 
             c.intId AS intContactId,
             c.strForename AS strContactForename,
-            c.strSurname AS strContactSurname,
+            c.strSurname AS str_contactsurname,
             c.strCompanyName AS strContactCompanyName,
             CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
             a.strAddress AS strContactBestAddress,
@@ -152,20 +200,22 @@ def getContacts(user):
             AND c.bitIsMe = 0
             AND a.bitBestAddress = 1"""
     
-    return [Contact(contact) for contact in database.executeManyToDictionary(sql, user)]
-
-def mergeContacts(contacts):
+    contacts = [Contact(contact) for contact in database.executeManyToDictionary(sql, _user)]
+    
+    _contacts = dict([[contact.id, contact] for contact in contacts])
+    
+def mergeContacts(contactsToMerge):
     """
-        Merges a list of contacts into one.
+        Merges a list of _contacts into one.
         
         Note that this operation loses data, and so cannot be undone.
     """
     
-    if len(contacts) < 2:
+    if len(contactsToMerge) < 2:
         print 'Too few contacts given to merge'
         return
     
-    moribundIds = ', '.join([str(contact.id) for contact in contacts[1:]])
+    moribundIds = ', '.join([str(contact.id) for contact in contactsToMerge[1:]])
     
     # Move all addresses to the alagamated contact
     sql = """
@@ -174,7 +224,7 @@ def mergeContacts(contacts):
             bitBestAddress = 0
         WHERE intContactId IN (""" + moribundIds + ")"
     
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Remove any addresses that are duplicates
     sql = """
@@ -194,7 +244,7 @@ def mergeContacts(contacts):
             AND o.bitIsPerson = 1
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Update the amalgamated contact’s forename if it hasn’t got one, but a moribund contact has.
     sql = """
@@ -207,7 +257,7 @@ def mergeContacts(contacts):
             AND o.bitIsPerson = 1
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Update the amalgamated contact’s company name if it hasn’t got one, but a moribund contact has.
     sql = """
@@ -219,7 +269,7 @@ def mergeContacts(contacts):
             AND n.bitIsPerson = 0
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Update the amalgamated contact’s type if it hasn’t got one, but a moribund contact has.
     sql = """
@@ -230,7 +280,7 @@ def mergeContacts(contacts):
             AND n.bitIsPerson IS NOT NULL
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Update the recipients of any affected messages to the amalgamated contact.
     sql = """
@@ -238,7 +288,7 @@ def mergeContacts(contacts):
         SET intContactId = %s
         WHERE intContactId IN (""" + moribundIds + ")"
         
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Remove any duplicate recipients.
     sql = """
@@ -253,7 +303,7 @@ def mergeContacts(contacts):
         SET intSenderId = %s
         WHERE intSenderId IN (""" + moribundIds + ")"
         
-    database.execute(sql, contacts[0].id).close()
+    database.execute(sql, contactsToMerge[0].id).close()
     
     # Delete all but the amalgamated contact.    
     sql = """
@@ -262,5 +312,5 @@ def mergeContacts(contacts):
     
     database.execute(sql).close()
     
-    
+    refresh()
     

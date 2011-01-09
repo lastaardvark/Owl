@@ -111,29 +111,29 @@ class MainWindow(QMainWindow):
         self.username = username
         self.password = password
         
+        contact.initialize(self.username)
+        message.initialize(self.username)
+        
         self.refreshLists()
     
     def refreshListsLocally(self):
         """
-            Put the contents of self.contacts and self.messages
+            Put locally-stored contact and message lists
             back into the list boxes. Used if a contact or message
             has been changed locally.
         """
         
-        self.contacts = sorted(self.contacts, key = lambda contact: unicode(contact))
-        self.userList.replaceList([(unicode(c), c) for c in self.contacts])
-        self.messageList.replaceList([(unicode(m), m) for m in self.messages])
-        
+        contacts = sorted(contact.getContacts(), key = lambda contact: unicode(contact))
+        self.userList.replaceList([(unicode(c), c) for c in contacts])
+        self.messageList.replaceList([(unicode(m), m) for m in message.getMessages()])
         
     def refreshLists(self):
         """
             Retrieve up-to-date lists of contacts and messages from the database,
             and put them in the relevant list boxes.
         """
-        
-        self.contacts = contact.getContacts(self.username)        
-        self.messages = message.getMessages(self.username, 5000)
-        
+        contact.refresh()
+        message.refresh()
         self.refreshListsLocally()
     
     def setProgressBarMaximum(self, maximum):
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
         
         if len(messages) == 1:
             if messages[0].type == 'email':
-                self.viewMessage = ViewEmail(messages[0].id)
+                self.viewMessage = ViewEmail(emailMessage.getEmailFromId(messages[0].id))
             self.viewMessage.show()
     
     def hideOrShowMergeButton(self):

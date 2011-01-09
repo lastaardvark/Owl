@@ -17,17 +17,18 @@ class Email(Message):
         
         Message.__init__(self, fields)
         
-        self.remoteId = fields["intEmailRemoteId"]
-        self.subject = fields["strEmailSubject"]
-        self.bodyPlain = fields["strEmailBodyPlainText"]
-        self.bodyHtml = fields["strEmailBodyHtml"]
-        if fields["strRaw"]:
-            self.raw = fields["strRaw"]
+        self.remoteId = fields['intEmailRemoteId']
+        self.subject = fields['strEmailSubject']
+        self.bodyPlain = fields['strEmailBodyPlainText']
+        self.bodyHtml = fields['strEmailBodyHtml']
+        if 'strRaw' in fields:
+            self.raw = fields['strRaw']
     
 def getEmailFromId(messageId):
     
     sql = """
         SELECT
+            intMessageId,
             intRemoteId AS intEmailRemoteId,
             strSubject AS strEmailSubject,
             strBodyPlainText AS strEmailBodyPlainText,

@@ -38,12 +38,11 @@ def reset():
 
 class ImapGetter:
     
-    def __init__(self, username, account, encryptionKey = None):
+    def __init__(self, account, encryptionKey = None):
         """
             Creates a new ImapGetter, with a user and a dictionary of account details.
             If an encryption key is given, it uses this to encrypt the bodies of emails.
         """
-        self.username = username
         self.account = account
         self.encryptionKey = encryptionKey
         self.needToStop = False
@@ -118,9 +117,9 @@ class ImapGetter:
             raw = encryption.encrypt(self.encryptionKey, raw)
                         
         alias, address = email['from']
-        senderId = contact.addContact(self.username, 'email', address, alias)
+        senderId = contact.addEmptyContact('email', address, alias)
         
-        recipientIds = [contact.addContact(self.username, 'email', address, alias) for alias, address in email['to']]
+        recipientIds = [contact.addEmptyContact('email', address, alias) for alias, address in email['to']]
         
         messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
         

@@ -1,7 +1,9 @@
 # coding=utf8
 
-import database
-from contact import Contact
+import contact, database
+
+_messages = {}
+_user = ''
 
 class Message:
     
@@ -12,14 +14,21 @@ class Message:
         """
         
         self.id = fields['intMessageId']
-        self.sender = Contact(fields)
-        self.sentDate = fields['datHappened']
-        self.summary = fields['strSummary'].replace(u'\n', u'')
-        if fields['strMessageType'] == 'imap':
-            self.type = 'email'
         
-        if len(self.summary) > 77:
-            self.summary = self.summary[:77] + '...'
+        if self.id in _messages:
+            
+            self.__dict__ = _messages[self.id].__dict__
+        
+        else:
+            self.sender = contact.getContactFromId(fields['intSenderId'])
+            
+            self.sentDate = fields['datHappened']
+            self.summary = fields['strSummary'].replace(u'\n', u'')
+            if fields['strMessageType'] == 'imap':
+                self.type = 'email'
+            
+            if len(self.summary) > 77:
+                self.summary = self.summary[:77] + '...'
 
     def __str__(self):
         """
@@ -31,7 +40,15 @@ class Message:
 
         return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
 
-def getMessages(user, number=50):
+def initialize(user):
+    global _user
+    _user = user
+    refresh()
+
+def getMessages():
+    return _messages.values()
+
+def refresh():
     """
         Returns a list of the given number of messages
         that belong to the user.
@@ -43,24 +60,18 @@ def getMessages(user, number=50):
             m.strSummary, m.datHappened,
             ac.enmType AS strMessageType,
             e.intRemoteId,
-            c.intId AS intContactId,
-            c.strForename AS strContactForename,
-            c.strSurname AS strContactSurname,
-            c.strCompanyName AS strContactCompanyName,
-            CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
-            a.strAddress AS strContactBestAddress,
-            a.strAlias AS strContactBestAlias
+            m.intSenderId
         FROM mAccount ac
             INNER JOIN mMessage m ON m.intAccountId = ac.intId
-            INNER JOIN cContact c ON c.intId = m.intSenderId
-            INNER JOIN cAddress a ON c.intId = a.intContactId
             LEFT JOIN mEmail e ON e.intMessageId = m.intId
         WHERE ac.strUser = %s
-            AND a.bitBestAddress = 1
-        ORDER BY m.datHappened DESC
-        LIMIT %s"""
-        
-    return [Message(msg) for msg in database.executeManyToDictionary(sql, (user, number))]
+        ORDER BY m.datHappened DESC"""
+    
+    messages = [Message(msg) for msg in database.executeManyToDictionary(sql, _user)]
+    
+    global _messages
+    _messages = dict([[message.id, message] for message in messages])
+    
 
 def getAllRemoteIds(accountId):
     """
@@ -96,5 +107,13 @@ def store(accountId, date, senderId, summary, recipientIds):
                 VALUES (%s, %s)"""
             
             database.execute(sql, (messageId, recipientId)).close()
+    
+    message = {
+        'intMessageId': messageId, 
+        'datHappened': date, 
+        'senderId': senderId, 
+        'strSummary': summary}
+    
+    _messages[messageId] = Message(message)
     
     return messageId

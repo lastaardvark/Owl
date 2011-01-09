@@ -43,11 +43,12 @@ class GatherData:
             return None
         
         # Decrypt account password
-        account['strPassword'] = encryption.decrypt(settings.settings['userPasswordEncryptionSalt'] + self.password, str(account['strPassword']))
+        password = settings.settings['userPasswordEncryptionSalt'] + self.password
+        account['strPassword'] = encryption.decrypt(password, str(account['strPassword']))
         
         encryptionKey = settings.settings['userDataEncryptionSalt'] + self.password
         
-        return ImapGetter(self.username, account, encryptionKey)
+        return ImapGetter(account, encryptionKey)
     
     def countNewMessages(self):
         """
