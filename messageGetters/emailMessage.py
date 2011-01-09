@@ -5,7 +5,7 @@ import os, sys
 sys.path.append(os.path.join(os.getcwd()))
 
 from message import Message
-import database
+import database, encryption, message, settings
 
 class Email(Message):
     
@@ -17,12 +17,22 @@ class Email(Message):
         
         Message.__init__(self, fields)
         
+        encryptionKey = settings.settings['userDataEncryptionSalt'] + message._password
+        
         self.remoteId = fields['intEmailRemoteId']
+        
         self.subject = fields['strEmailSubject']
+        
         self.bodyPlain = fields['strEmailBodyPlainText']
+        self.bodyPlain = encryption.decrypt(encryptionKey, self.bodyPlain)
+        
         self.bodyHtml = fields['strEmailBodyHtml']
+        self.bodyHtml = encryption.decrypt(encryptionKey, self.bodyHtml)
+        
         if 'strRaw' in fields:
             self.raw = fields['strRaw']
+            self.raw = encryption.decrypt(encryptionKey, self.raw)
+        
     
 def getEmailFromId(messageId):
     

@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         self.password = password
         
         contact.initialize(self.username)
-        message.initialize(self.username)
+        message.initialize(self.username, self.password)
         
         self.refreshLists()
     

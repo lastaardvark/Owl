@@ -4,6 +4,7 @@ import contact, database
 
 _messages = {}
 _user = ''
+_password = ''
 
 class Message:
     
@@ -40,9 +41,11 @@ class Message:
 
         return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
 
-def initialize(user):
+def initialize(user, password):
     global _user
+    global _password
     _user = user
+    _password = password
     refresh()
 
 def getMessages():
