@@ -114,14 +114,15 @@ class ImapEmail(object):
                 
                 components = self._extractBody(msg, True)
                 
-                for component in components:
-                    if component:
-                        component = stringFunctions.fixEncoding(component)
+                for contentType, component in components:
+                    component = stringFunctions.fixEncoding(component)
                     
-                    if component.find('<html') > 0 or component.find('</html') > 0:
+                    if contentType == 'text/html':
                         rtn['bodyHtml'] = component
-                    else:
+                    elif contentType == 'text/plain':
                         rtn['bodyPlainText'] = component
+                    else:
+                        print 'Aaargh: ' + contentType
                 
                 rtn['subject'] = stringFunctions.fixEncoding(rtn['subject'])
                 
@@ -163,7 +164,7 @@ class ImapEmail(object):
             if msg.get_filename(): 
                 return []
             else:
-                return [msg.get_payload(decode=decode)]
+                return [(msg.get_content_type(), msg.get_payload(decode=decode))]
     
     def logout(self):
         """

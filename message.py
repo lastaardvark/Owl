@@ -90,7 +90,7 @@ def getAllRemoteIds(accountId):
     
     return database.executeManyToDictionary(sql, accountId)  
 
-def store(accountId, date, senderId, summary, recipientIds):
+def store(accountId, date, senderId, summary, recipientIds, messageType):
     """
         Stores a message, and return its ID.
     """    
@@ -110,13 +110,12 @@ def store(accountId, date, senderId, summary, recipientIds):
                 VALUES (%s, %s)"""
             
             database.execute(sql, (messageId, recipientId)).close()
-    
-    message = {
+
+    _messages[messageId] = Message({
         'intMessageId': messageId, 
         'datHappened': date, 
-        'senderId': senderId, 
-        'strSummary': summary}
-    
-    _messages[messageId] = Message(message)
+        'intSenderId': senderId, 
+        'strSummary': summary,
+        'strMessageType': messageType})
     
     return messageId

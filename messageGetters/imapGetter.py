@@ -121,7 +121,7 @@ class ImapGetter:
         
         recipientIds = [contact.addEmptyContact('email', address, alias) for alias, address in email['to']]
         
-        messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds)
+        messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds, 'imap')
         
         emailMessage.store(messageId, id, email['subject'], bodyPlain, bodyHtml, raw)
     

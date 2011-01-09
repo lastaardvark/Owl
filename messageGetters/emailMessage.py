@@ -14,6 +14,7 @@ class Email(Message):
             Initializes a new Email using a dictionary
             of database fields.
         """
+        fields['strMessageType'] = 'imap'
         
         Message.__init__(self, fields)
         
