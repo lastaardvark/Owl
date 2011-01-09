@@ -11,8 +11,11 @@ class Contact:
         """
         
         self.id = fields['intContactId']
+        
         self.forename = fields['strContactForename']
         self.surname = fields['strContactSurname']
+        self.companyName = fields['strContactCompanyName']
+        self.isPerson = fields['bitContactIsPerson']
         self.addresses = []
         
         if 'strContactBestAddress' in fields:
@@ -20,19 +23,22 @@ class Contact:
         if 'strContactBestAlias' in fields:
             self.bestAlias = fields['strContactBestAlias']
     
+        
     def __str__(self):
         """
             A short string representation of the Contact.
             Should be called with unicode(var).
         """
+        if not self.isPerson and self.companyName:
+            return self.companyName
         
-        if self.forename and self.surname:
+        if self.isPerson and self.forename and self.surname:
             return self.forename + ' ' + self.surname
         
-        elif self.surname:
+        elif self.isPerson and self.surname:
             return '? ' + self.surname
             
-        elif self.forename:
+        elif self.isPerson and self.forename:
             return self.forename + ' ?'
             
         elif self.bestAlias:
@@ -59,6 +65,22 @@ class Contact:
             self.addresses = database.executeManyToDictionary(sql, self.id)
         
         return self.addresses
+            
+    def update(self):
+        """
+            Updates the database record of a contact to the local copy.
+            Note, this does not update any addresses.
+        """
+        
+        sql = """
+            UPDATE cContact
+            SET strForename = %s,
+                strSurname = %s,
+                strCompanyName = %s,
+                bitIsPerson = %s
+            WHERE intId = %s"""
+        
+        database.execute(sql, (self.forename, self.surname, self.companyName, self.isPerson, self.id)).close()
         
 def addContact(user, addressType, address, alias=None):
     """
@@ -103,20 +125,6 @@ def addContact(user, addressType, address, alias=None):
         
     return contactId
     
-def updateContact(user, contactId, forename, surname):
-    """
-        Updates the database record of a contact to the given name.
-    """
-    
-    sql = """
-        UPDATE cContact
-        SET strForename = %s,
-            strSurname = %s
-        WHERE intId = %s
-            AND strUser = %s"""
-    
-    database.execute(sql, (forename, surname, contactId, user)).close()
-    
 def getContacts(user):
     """
         Returns a list of all the contacts of the given user.
@@ -127,6 +135,8 @@ def getContacts(user):
             c.intId AS intContactId,
             c.strForename AS strContactForename,
             c.strSurname AS strContactSurname,
+            c.strCompanyName AS strContactCompanyName,
+            CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
             a.strAddress AS strContactBestAddress,
             a.strAlias AS strContactBestAlias
         FROM cContact c
@@ -173,6 +183,8 @@ def mergeContacts(contacts):
         WHERE o.intId = %s
             AND IFNULL(o.strSurname, '') = ''
             AND IFNULL(n.strSurname, '') != ''
+            AND n.bitIsPerson = 1
+            AND o.bitIsPerson = 1
             AND n.intId IN (""" + moribundIds + ")"
             
     database.execute(sql, contacts[0].id).close()
@@ -184,6 +196,20 @@ def mergeContacts(contacts):
         WHERE o.intId = %s
             AND IFNULL(o.strForename, '') = ''
             AND IFNULL(n.strForename, '') != ''
+            AND n.bitIsPerson = 1
+            AND o.bitIsPerson = 1
+            AND n.intId IN (""" + moribundIds + ")"
+            
+    database.execute(sql, contacts[0].id).close()
+    
+    # Update the amalgamated contact’s company name if it hasn’t got one, but a moribund contact has.
+    sql = """
+        UPDATE cContact o, cContact n
+        SET o.strCompanyName = n.strCompanyName
+        WHERE o.intId = %s
+            AND IFNULL(o.strCompanyName, '') = ''
+            AND IFNULL(n.strCompanyName, '') != ''
+            AND n.bitIsPerson = 0
             AND n.intId IN (""" + moribundIds + ")"
             
     database.execute(sql, contacts[0].id).close()

@@ -43,6 +43,8 @@ def getMessages(user, number=50):
             c.intId AS intContactId,
             c.strForename AS strContactForename,
             c.strSurname AS strContactSurname,
+            c.strCompanyName AS strContactCompanyName,
+            CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
             a.strAddress AS strContactBestAddress,
             a.strAlias AS strContactBestAlias
         FROM mAccount ac
