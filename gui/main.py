@@ -155,6 +155,8 @@ class MainWindow(QMainWindow):
         self.progress.setLabelText('Downloading email %s of %s...' % \
             (stringFunctions.formatInt(messagesProcessed + 1), stringFunctions.formatInt(self.progress.maximum())))
         
+        self.refreshListsLocally()
+        
     def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
         """
             This method is called from the thread doing the downlaoding.

@@ -13,6 +13,13 @@ class Contact:
             of database fields.
         """
         
+        self.forename = None
+        self.surname = None
+        self.companyName = None
+        self.isPerson = None
+        self.bestAddress = None
+        self.bestAlias = None
+        
         self.id = int(fields['intContactId'])
         
         if 'strContactForename' in fields:
@@ -142,7 +149,10 @@ def addEmptyContact(addressType, address, alias=None):
     else:
         contactId = int(result['intContactId'])
     
-    _contacts[contactId] = Contact({"intContactId": contactId})
+    _contacts[contactId] = Contact({
+        'intContactId': contactId, 
+        'strContactBestAddress': address,
+        'strContactBestAlias': alias})
     
     return contactId
 
@@ -189,7 +199,7 @@ def refresh():
         SELECT 
             c.intId AS intContactId,
             c.strForename AS strContactForename,
-            c.strSurname AS str_contactsurname,
+            c.strSurname AS strContactSurname,
             c.strCompanyName AS strContactCompanyName,
             CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
             a.strAddress AS strContactBestAddress,

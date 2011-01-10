@@ -116,13 +116,13 @@ class ImapEmail(object):
                 
                 for contentType, component in components:
                     component = stringFunctions.fixEncoding(component)
-                    
-                    if contentType == 'text/html':
-                        rtn['bodyHtml'] = component
-                    elif contentType == 'text/plain':
-                        rtn['bodyPlainText'] = component
-                    else:
-                        print 'Aaargh: ' + contentType
+                    if contentType.startswith('text/'):
+                        if contentType == 'text/html':
+                            rtn['bodyHtml'] = component
+                        elif contentType == 'text/plain':
+                            rtn['bodyPlainText'] = component
+                        else:
+                            print 'Aaargh: ' + contentType
                 
                 rtn['subject'] = stringFunctions.fixEncoding(rtn['subject'])
                 
