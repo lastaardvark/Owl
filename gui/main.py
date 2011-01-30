@@ -124,8 +124,9 @@ class MainWindow(QMainWindow):
         """
         
         contacts = sorted(contact.getContacts(), key = lambda contact: unicode(contact))
+        messages = sorted(message.getMessages(), key = lambda message: unicode(message))
         self.userList.replaceList([(unicode(c), c) for c in contacts])
-        self.messageList.replaceList([(unicode(m), m) for m in message.getMessages()])
+        self.messageList.replaceList([(unicode(m), m) for m in messages])
         
     def refreshLists(self):
         """

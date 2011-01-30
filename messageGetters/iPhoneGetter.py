@@ -130,8 +130,6 @@ class IPhoneGetter:
             message is stored.
         """
         
-        self.updateContacts()
-        
         if not ids:
             ids = self.getNewMessageIds()
         

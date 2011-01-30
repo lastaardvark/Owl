@@ -296,8 +296,8 @@ def mergeContacts(contactsToMerge):
         WHERE o.intId = %s
             AND IFNULL(o.strSurname, '') = ''
             AND IFNULL(n.strSurname, '') != ''
-            AND n.bitIsPerson = 1
-            AND o.bitIsPerson = 1
+            AND n.bitIsPerson != 0
+            AND o.bitIsPerson != 0
             AND n.intId IN (""" + moribundIds + ")"
             
     database.execute(sql, contactsToMerge[0].id).close()
@@ -309,8 +309,8 @@ def mergeContacts(contactsToMerge):
         WHERE o.intId = %s
             AND IFNULL(o.strForename, '') = ''
             AND IFNULL(n.strForename, '') != ''
-            AND n.bitIsPerson = 1
-            AND o.bitIsPerson = 1
+            AND n.bitIsPerson != 0
+            AND o.bitIsPerson != 0
             AND n.intId IN (""" + moribundIds + ")"
             
     database.execute(sql, contactsToMerge[0].id).close()
