@@ -22,6 +22,9 @@ def reset():
     sql = "DELETE FROM mEmail"   
     database.execute(sql).close()
         
+    sql = "DELETE FROM mSms"   
+    database.execute(sql).close()
+    
     sql = "DELETE FROM mMessage"   
     database.execute(sql).close()
     
@@ -33,7 +36,16 @@ def reset():
     ourContactId = cursor.lastrowid
     cursor.close()
     
-    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'proberts84@gmail.com', 1, 'Paul Roberts')"
+    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'proberts84@gmail.com', 0, 'Paul Roberts')"
+    database.execute(sql, ourContactId).close()
+    
+    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'paul@pjroberts.com', 1, 'Paul Roberts')"
+    database.execute(sql, ourContactId).close()
+    
+    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'admin@pjroberts.com', 0, 'Paul Roberts')"
+    database.execute(sql, ourContactId).close()
+    
+    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'phone', '+447985577384', 0, NULL)"
     database.execute(sql, ourContactId).close()
 
 class ImapGetter:
@@ -67,7 +79,7 @@ class ImapGetter:
         serverIds = [msgId for msgId in server.getMailIds()]
         server.logout()
         
-        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'])]
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'], 'imap')]
 
         return [msg for msg in serverIds if storedIds.count(msg) == 0]
         

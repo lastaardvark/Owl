@@ -27,6 +27,8 @@ class Message:
             self.summary = fields['strSummary'].replace(u'\n', u'')
             if fields['strMessageType'] == 'imap':
                 self.type = 'email'
+            elif fields['strMessageType'] == 'iPhone SMS':
+                self.type = 'SMS'
             
             if len(self.summary) > 77:
                 self.summary = self.summary[:77] + '...'
@@ -46,7 +48,6 @@ def initialize(user, password):
     global _password
     _user = user
     _password = password
-    refresh()
 
 def getMessages():
     return _messages.values()
@@ -62,11 +63,9 @@ def refresh():
             m.intId AS intMessageId,
             m.strSummary, m.datHappened,
             ac.enmType AS strMessageType,
-            e.intRemoteId,
             m.intSenderId
-        FROM mAccount ac
+        FROM aAccount ac
             INNER JOIN mMessage m ON m.intAccountId = ac.intId
-            LEFT JOIN mEmail e ON e.intMessageId = m.intId
         WHERE ac.strUser = %s
         ORDER BY m.datHappened DESC"""
     
@@ -76,17 +75,23 @@ def refresh():
     _messages = dict([[message.id, message] for message in messages])
     
 
-def getAllRemoteIds(accountId):
+def getAllRemoteIds(accountId, type):
     """
         Returns a list of all the remote IDs for an account.
         This is useful for determining which messages on the server are new.
     """
-    
-    sql = """
-        SELECT e.intRemoteId
-        FROM mMessage m
-            INNER JOIN mEmail e ON e.intMessageId = m.intId
-        WHERE m.intAccountId = %s"""
+    if type == 'imap':
+        sql = """
+            SELECT e.intRemoteId
+            FROM mMessage m
+                INNER JOIN mEmail e ON e.intMessageId = m.intId
+            WHERE m.intAccountId = %s"""
+    elif type == 'iPhone SMS':
+        sql = """
+            SELECT s.intRemoteId
+            FROM mMessage m
+                INNER JOIN mSms s ON s.intMessageId = m.intId
+            WHERE m.intAccountId = %s"""
     
     return database.executeManyToDictionary(sql, accountId)  
 

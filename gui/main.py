@@ -143,7 +143,9 @@ class MainWindow(QMainWindow):
         """
         
         self.progress.setMaximum(maximum)
-        self.progress.setLabelText('Downloading email 1 of ' + stringFunctions.formatInt(maximum))
+        noun = maximum == 1 and 'message' or 'messages'
+        
+        self.progress.setLabelText('Found ' + stringFunctions.formatInt(maximum) + ' ' + noun)
     
     def updateProgressBar(self, messagesProcessed):
         """
@@ -152,8 +154,11 @@ class MainWindow(QMainWindow):
         """
             
         self.progress.setValue(messagesProcessed)
-        self.progress.setLabelText('Downloading email %s of %s...' % \
+        self.progress.setLabelText('Downloading message %s of %s...' % \
             (stringFunctions.formatInt(messagesProcessed + 1), stringFunctions.formatInt(self.progress.maximum())))
+            
+        if messagesProcessed >= self.progress.maximum():
+            self.progress.close()
         
         self.refreshListsLocally()
         
@@ -194,7 +199,7 @@ class MainWindow(QMainWindow):
             accounts
         """
         
-        self.progress = QProgressDialog('Looking for emails...', 'Cancel', 0, 10)
+        self.progress = QProgressDialog('Looking for messages...', 'Cancel', 0, 10)
         self.progress.resize(400, 50)
         self.progress.show()
         
@@ -225,7 +230,9 @@ class MainWindow(QMainWindow):
         messages = self.messageList.getSelectedItems()
         
         if len(messages) == 1:
+        
             if messages[0].type == 'email':
+            
                 self.viewMessage = ViewEmail(emailMessage.getEmailFromId(messages[0].id))
             self.viewMessage.show()
     

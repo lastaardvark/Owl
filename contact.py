@@ -24,8 +24,8 @@ class Contact:
         
         if 'strContactForename' in fields:
             self.forename = fields['strContactForename']
-        if 'str_contactsurname' in fields:
-            self.surname = fields['str_contactsurname']
+        if 'strContactSurname' in fields:
+            self.surname = fields['strContactSurname']
         if 'strContactCompanyName' in fields:
             self.companyName = fields['strContactCompanyName']
         if 'bitContactIsPerson' in fields:
@@ -50,26 +50,30 @@ class Contact:
             A short string representation of the Contact.
             Should be called with unicode(var).
         """
-        if not self.isPerson and self.companyName:
+        
+        isPerson = self.isPerson
+        if self.isPerson == None:
+            isPerson = True
+        
+        if not isPerson and self.companyName:
             return self.companyName
         
-        if self.isPerson and self.forename and self.surname:
+        if isPerson and self.forename and self.surname:
             return self.forename + ' ' + self.surname
         
-        elif self.isPerson and self.surname:
+        if isPerson and self.surname:
             return '? ' + self.surname
             
-        elif self.isPerson and self.forename:
+        if isPerson and self.forename:
             return self.forename + ' ?'
             
-        elif self.bestAlias:
+        if self.bestAlias:
             return self.bestAlias
                     
-        elif self.bestAddress:
+        if self.bestAddress:
             return self.bestAddress
             
-        else:
-            return '?'
+        return '?'
     
     def getAddresses(self):
         """
@@ -108,7 +112,7 @@ def initialize(user):
     _user = user
     refresh()
 
-def addEmptyContact(addressType, address, alias=None):
+def createContact(forename, surname, addressType, address, alias=None):
     """
         If the address is unknown, add it. In either case,
         return the address ID.
@@ -133,10 +137,10 @@ def addEmptyContact(addressType, address, alias=None):
     if result == None:
         
         sql = """
-            INSERT INTO cContact (strUser)
-            VALUES (%s)"""
+            INSERT INTO cContact (strUser, strForename, strSurname)
+            VALUES (%s, %s, %s)"""
         
-        cursor = database.execute(sql, _user)
+        cursor = database.execute(sql, (_user, forename, surname))
         
         contactId = cursor.lastrowid
         cursor.close()
@@ -150,9 +154,51 @@ def addEmptyContact(addressType, address, alias=None):
         contactId = int(result['intContactId'])
     
     _contacts[contactId] = Contact({
+        'strContactForename': forename,
+        'strContactSurname': surname,
         'intContactId': contactId, 
         'strContactBestAddress': address,
         'strContactBestAlias': alias})
+    
+    return contactId
+
+def addEmptyContact(addressType, address, alias=None):
+    return createContact(None, None, addressType, address, alias)
+
+def addAddressToExitingContact(contactId, addressType, address, alias = None):
+    """
+        Adds the given address to the given contact. This addition may cause
+        the contact to merge with another (if the address is already known).
+        We therefore return the ID of the contact that now has the address.
+    """
+    
+    if not address:
+        print 'Address is empty'
+        return None
+    
+    address = address.lower()
+    
+    sql = """
+        SELECT c.intId AS intContactId
+        FROM cContact c
+            INNER JOIN cAddress a ON c.intId = a.intContactId
+        WHERE c.strUser = %s
+            AND a.enmAddressType = %s
+            AND a.strAddress = %s"""
+    
+    result = database.executeOneToDictionary(sql, (_user, addressType, address))
+    
+    if result:
+        if int(result['intContactId']) != int(contactId):
+            print "Merging contacts"
+            mergeContacts([getContactFromId(result['intContactId']), getContactFromId(contactId)])
+            return result['intContactId']
+    else:
+        sql = """
+            INSERT INTO cAddress (intContactId, enmAddressType, strAddress, strAlias, bitBestAddress)
+            VALUES (%s, %s, %s, %s, 1)"""
+        
+        database.execute(sql, (contactId, addressType, address, alias)).close()
     
     return contactId
 
@@ -216,7 +262,7 @@ def refresh():
     
 def mergeContacts(contactsToMerge):
     """
-        Merges a list of _contacts into one.
+        Merges a list of contacts into one.
         
         Note that this operation loses data, and so cannot be undone.
     """
@@ -227,7 +273,7 @@ def mergeContacts(contactsToMerge):
     
     moribundIds = ', '.join([str(contact.id) for contact in contactsToMerge[1:]])
     
-    # Move all addresses to the alagamated contact
+    # Move all addresses to the amalgamated contact
     sql = """
         UPDATE IGNORE cAddress
         SET intContactId = %s,
