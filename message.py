@@ -45,7 +45,7 @@ class Message:
             WHERE intMessageId = ?"""
         
         recipients = db.executeMany(sql, self.id)
-        return [contact.getContactFromId(db, r['intContactId']) for row in recipients]
+        return [contact.getContactFromId(db, row['intContactId']) for row in recipients]
 
 def getMessages(db):
     """
