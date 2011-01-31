@@ -17,6 +17,7 @@ from mergeContacts import MergeDialog
 from messageViewers.viewEmail import ViewEmail
 from messageViewers.viewSms import ViewSms
 from messageGetters import emailMessage, smsMessage
+from sqlite import Sqlite
 
 import contact, message, stringFunctions
 
@@ -112,31 +113,22 @@ class MainWindow(QMainWindow):
         self.username = username
         self.password = password
         
-        contact.initialize(self.username)
-        message.initialize(self.username, self.password)
+        self.sqlite = Sqlite(username)
         
         self.refreshLists()
     
-    def refreshListsLocally(self):
+    def refreshLists(self):
         """
             Put locally-stored contact and message lists
             back into the list boxes. Used if a contact or message
             has been changed locally.
         """
         
-        contacts = sorted(contact.getContacts(), key = lambda contact: unicode(contact))
-        messages = sorted(message.getMessages(), key = lambda message: unicode(message))
+        contacts = sorted(contact.getContacts(self.sqlite), key = lambda contact: unicode(contact))
+        messages = sorted(message.getMessages(self.sqlite), key = lambda message: unicode(message))
         self.userList.replaceList([(unicode(c), c) for c in contacts])
         self.messageList.replaceList([(unicode(m), m) for m in messages])
         
-    def refreshLists(self):
-        """
-            Retrieve up-to-date lists of contacts and messages from the database,
-            and put them in the relevant list boxes.
-        """
-        contact.refresh()
-        message.refresh()
-        self.refreshListsLocally()
     
     def setProgressBarMaximum(self, maximum):
         """
@@ -162,7 +154,7 @@ class MainWindow(QMainWindow):
         if messagesProcessed >= self.progress.maximum():
             self.progress.close()
         
-        self.refreshListsLocally()
+        self.refreshLists()
         
     def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
         """

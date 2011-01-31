@@ -5,7 +5,7 @@ import os, sys
 sys.path.append(os.path.join(os.getcwd()))
 
 from message import Message
-import database, encryption, message, settings
+import encryption, message, settings
 
 class Email(Message):
     
@@ -35,7 +35,7 @@ class Email(Message):
             self.raw = encryption.decrypt(encryptionKey, self.raw)
         
     
-def getEmailFromId(messageId):
+def getEmailFromId(db, messageId):
     
     sql = """
         SELECT
@@ -45,11 +45,11 @@ def getEmailFromId(messageId):
             strBodyPlainText AS strEmailBodyPlainText,
             strBodyHtml AS strEmailBodyHtml
         FROM mEmail
-        WHERE intMessageId = %s"""
+        WHERE intMessageId = ?"""
     
-    return Email(database.executeOneToDictionary(sql, messageId))
+    return Email(sqlite.owlExecuteOne(sql, messageId))
     
-def store(messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
+def store(db, messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     """
         Stores the given email to the database. The message
         should be stored first, to give a messageId.
@@ -60,4 +60,4 @@ def store(messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
             (intMessageId, intRemoteId, strSubject, strBodyPlainText, strBodyHtml, strRaw)
         VALUES (%s, %s, %s, %s, %s, %s)"""
     
-    database.execute(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw)).close()
+    db.owlExecuteNone(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw))

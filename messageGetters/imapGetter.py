@@ -8,49 +8,10 @@ sys.path.append(os.path.join(os.getcwd()))
 
 import contact, database, encryption, message, settings, stringFunctions
 
-def reset():
-    """
-        Temporary.
-    """
-    
-    sql = "DELETE FROM mRecipient"   
-    database.execute(sql).close()
-    
-    sql = "DELETE FROM cAddress"   
-    database.execute(sql).close()
-    
-    sql = "DELETE FROM mEmail"   
-    database.execute(sql).close()
-        
-    sql = "DELETE FROM mSms"   
-    database.execute(sql).close()
-    
-    sql = "DELETE FROM mMessage"   
-    database.execute(sql).close()
-    
-    sql = "DELETE FROM cContact"   
-    database.execute(sql).close()
-    
-    sql = "INSERT INTO cContact (strUser, bitIsMe, strForename, strSurname) VALUES ('paul', 1, 'Paul', 'Roberts')"
-    cursor = database.execute(sql)
-    ourContactId = cursor.lastrowid
-    cursor.close()
-    
-    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'proberts84@gmail.com', 0, 'Paul Roberts')"
-    database.execute(sql, ourContactId).close()
-    
-    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'paul@pjroberts.com', 1, 'Paul Roberts')"
-    database.execute(sql, ourContactId).close()
-    
-    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'email', 'admin@pjroberts.com', 0, 'Paul Roberts')"
-    database.execute(sql, ourContactId).close()
-    
-    sql = "INSERT INTO cAddress(intContactId, enmAddressType, strAddress, bitBestAddress, strAlias) VALUES (%s, 'phone', '+447985577384', 0, NULL)"
-    database.execute(sql, ourContactId).close()
 
 class ImapGetter:
     
-    def __init__(self, account, encryptionKey = None):
+    def __init__(self, db, account, encryptionKey = None):
         """
             Creates a new ImapGetter, with a user and a dictionary of account details.
             If an encryption key is given, it uses this to encrypt the bodies of emails.
@@ -58,8 +19,7 @@ class ImapGetter:
         self.account = account
         self.encryptionKey = encryptionKey
         self.needToStop = False
-        
-        #reset()
+        self.db = db
     
     def _connect(self):
         """
@@ -79,7 +39,7 @@ class ImapGetter:
         serverIds = [msgId for msgId in server.getMailIds()]
         server.logout()
         
-        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'], 'imap')]
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.db, self.account['intAccountId'], 'imap')]
 
         return [msg for msg in serverIds if storedIds.count(msg) == 0]
         
@@ -129,13 +89,13 @@ class ImapGetter:
             raw = encryption.encrypt(self.encryptionKey, raw)
                         
         alias, address = email['from']
-        senderId = contact.addEmptyContact('email', address, alias)
+        senderId = contact.addEmptyContact(self.db, 'email', address, alias)
         
-        recipientIds = [contact.addEmptyContact('email', address, alias) for alias, address in email['to']]
+        recipientIds = [contact.addEmptyContact(self.db, 'email', address, alias) for alias, address in email['to']]
         
-        messageId = message.store(self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds, 'imap')
+        messageId = message.store(self.db, self.account['intAccountId'], email['date'], senderId, email['subject'], recipientIds, 'imap')
         
-        emailMessage.store(messageId, id, email['subject'], bodyPlain, bodyHtml, raw)
+        emailMessage.store(self.db, messageId, id, email['subject'], bodyPlain, bodyHtml, raw)
     
     def stop(self):
         """
@@ -144,28 +104,3 @@ class ImapGetter:
         
         self.needToStop = True
         
-if __name__ == '__main__':
-    
-    imapGetter = ImapGetter( \
-        'tla', {'strEmailAddress': 'tla.owl.test@gmail.com', 
-                'strServer': 'imap.gmail.com',
-                'intPort': 993, 
-                'strUsername': 'tla.owl.test', 
-                'strPassword': settings.settings['testPassword'],
-                'intAccountId': 4
-                })
-                
-    #ids = imapGetter.getNewMessageIds()
-    
-    #print type(ids[0])
-    #print ids
-    server = imapGetter._connect()
-    
-    email = server.getMailFromId(4)
-  #  print email
-                
-                
-                
-                
-    
-    

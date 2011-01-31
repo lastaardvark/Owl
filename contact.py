@@ -1,9 +1,6 @@
 # coding=utf8
 
-import database
-
-_contacts = {}
-_user = ''
+import sqlite
 
 class Contact:
     
@@ -75,23 +72,23 @@ class Contact:
             
         return '?'
     
-    def getAddresses(self):
+    def getAddresses(self, db):
         """
             Returns a list of known addresses for this contact
         """
         
         if not self.addresses:
             sql = """
-                SELECT enmAddressType, strAddress
+                SELECT strAddressType, strAddress
                 FROM cAddress
-                WHERE intContactId = %s
-                ORDER BY enmAddressType, strAddress"""
+                WHERE intContactId = ?
+                ORDER BY strAddressType, strAddress"""
             
-            self.addresses = database.executeManyToDictionary(sql, self.id)
+            self.addresses = db.owlExecuteMany(sql, self.id)
         
         return self.addresses
             
-    def update(self):
+    def update(self, db):
         """
             Updates the database record of a contact to the local copy.
             Note, this does not update any addresses.
@@ -99,20 +96,15 @@ class Contact:
         
         sql = """
             UPDATE cContact
-            SET strForename = %s,
-                strSurname = %s,
-                strCompanyName = %s,
-                bitIsPerson = %s
-            WHERE intId = %s"""
+            SET strForename = ?,
+                strSurname = ?,
+                strCompanyName = ?,
+                bitIsPerson = ?
+            WHERE intId = ?"""
         
-        database.execute(sql, (self.forename, self.surname, self.companyName, self.isPerson, self.id)).close()
+        db.owlExecuteNone(sql, (self.forename, self.surname, self.companyName, self.isPerson, self.id))
 
-def initialize(user):
-    global _user
-    _user = user
-    refresh()
-
-def createContact(forename, surname, addressType, address, alias=None):
+def createContact(db, forename, surname, addressType, address, alias=None):
     """
         If the address is unknown, add it. In either case,
         return the address ID.
@@ -128,44 +120,33 @@ def createContact(forename, surname, addressType, address, alias=None):
         SELECT c.intId AS intContactId
         FROM cContact c
             INNER JOIN cAddress a ON c.intId = a.intContactId
-        WHERE c.strUser = %s
-            AND a.enmAddressType = %s
-            AND a.strAddress = %s"""
+        WHERE a.strAddressType = ?
+            AND a.strAddress = ?"""
     
-    result = database.executeOneToDictionary(sql, (_user, addressType, address))
+    result = db.owlExecuteOne(sql, (addressType, address))
     
     if result == None:
         
         sql = """
-            INSERT INTO cContact (strUser, strForename, strSurname)
-            VALUES (%s, %s, %s)"""
+            INSERT INTO cContact (strForename, strSurname)
+            VALUES (?, ?)"""
         
-        cursor = database.execute(sql, (_user, forename, surname))
-        
-        contactId = cursor.lastrowid
-        cursor.close()
+        contactId = db.owlExecuteNoneReturnId(sql, (forename, surname))
         
         sql = """
-            INSERT INTO cAddress (intContactId, enmAddressType, strAddress, strAlias, bitBestAddress)
-            VALUES (%s, %s, %s, %s, 1)"""
+            INSERT INTO cAddress (intContactId, strAddressType, strAddress, strAlias, bitBestAddress)
+            VALUES (?, ?, ?, ?, 1)"""
         
-        database.execute(sql, (contactId, addressType, address, alias)).close()
+        db.owlExecuteNone(sql, (contactId, addressType, address, alias))
     else:
         contactId = int(result['intContactId'])
     
-    _contacts[contactId] = Contact({
-        'strContactForename': forename,
-        'strContactSurname': surname,
-        'intContactId': contactId, 
-        'strContactBestAddress': address,
-        'strContactBestAlias': alias})
-    
     return contactId
 
-def addEmptyContact(addressType, address, alias=None):
-    return createContact(None, None, addressType, address, alias)
+def addEmptyContact(db, addressType, address, alias=None):
+    return createContact(db, None, None, addressType, address, alias)
 
-def addAddressToExitingContact(contactId, addressType, address, alias = None):
+def addAddressToExitingContact(db, contactId, addressType, address, alias = None):
     """
         Adds the given address to the given contact. This addition may cause
         the contact to merge with another (if the address is already known).
@@ -182,64 +163,30 @@ def addAddressToExitingContact(contactId, addressType, address, alias = None):
         SELECT c.intId AS intContactId
         FROM cContact c
             INNER JOIN cAddress a ON c.intId = a.intContactId
-        WHERE c.strUser = %s
-            AND a.enmAddressType = %s
-            AND a.strAddress = %s"""
+        WHERE a.strAddressType = ?
+            AND a.strAddress = ?"""
     
-    result = database.executeOneToDictionary(sql, (_user, addressType, address))
+    result = db.owlExecuteOne(sql, (addressType, address))
     
     if result:
         if int(result['intContactId']) != int(contactId):
             print "Merging contacts"
-            mergeContacts([getContactFromId(result['intContactId']), getContactFromId(contactId)])
+            mergeContacts(db, [getContactFromId(result['intContactId']), getContactFromId(contactId)])
             return result['intContactId']
     else:
         sql = """
-            INSERT INTO cAddress (intContactId, enmAddressType, strAddress, strAlias, bitBestAddress)
-            VALUES (%s, %s, %s, %s, 1)"""
+            INSERT INTO cAddress (intContactId, strAddressType, strAddress, strAlias, bitBestAddress)
+            VALUES (?, ?, ?, ?, 1)"""
         
-        database.execute(sql, (contactId, addressType, address, alias)).close()
+        sqlite.owlExecuteNone(sql, (contactId, addressType, address, alias))
     
     return contactId
 
 def getContactFromFields(fields):
     contact = Contact(fields)
-    _contacts[contact.id] = contact
     return contact
 
-def getContactFromId(id):
-    id = int(id)
-    
-    if id in _contacts:
-        return _contacts[id]
-    else:                       # The user, for example
-        sql = """
-            SELECT 
-                c.intId AS intContactId,
-                c.strForename AS strContactForename,
-                c.strSurname AS strContactSurname,
-                c.strCompanyName AS strContactCompanyName,
-                CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
-                a.strAddress AS strContactBestAddress,
-                a.strAlias AS strContactBestAlias
-            FROM cContact c
-                INNER JOIN cAddress a ON c.intId = a.intContactId
-            WHERE c.intId = %s
-                AND a.bitBestAddress = 1"""
-        
-        contact = Contact(database.executeOneToDictionary(sql, id))
-        _contacts[contact.id] = contact
-        return contact
-        
-    
-def getContacts():
-    return _contacts.values()
-
-def refresh():
-    """
-        Refreshes the contact list to match the database.
-    """
-    global _contacts
+def getContactFromId(db, id):
 
     sql = """
         SELECT 
@@ -252,15 +199,34 @@ def refresh():
             a.strAlias AS strContactBestAlias
         FROM cContact c
             INNER JOIN cAddress a ON c.intId = a.intContactId
-        WHERE c.strUser = %s
-            AND c.bitIsMe = 0
+        WHERE c.intId = ?
             AND a.bitBestAddress = 1"""
     
-    contacts = [Contact(contact) for contact in database.executeManyToDictionary(sql, _user)]
+    contact = Contact(db.owlExecuteOne(sql, id))
+    return contact
+        
     
-    _contacts = dict([[contact.id, contact] for contact in contacts])
+def getContacts(db):
+
+    sql = """
+        SELECT 
+            c.intId AS intContactId,
+            c.strForename AS strContactForename,
+            c.strSurname AS strContactSurname,
+            c.strCompanyName AS strContactCompanyName,
+            CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
+            a.strAddress AS strContactBestAddress,
+            a.strAlias AS strContactBestAlias
+        FROM cContact c
+            INNER JOIN cAddress a ON c.intId = a.intContactId
+        WHERE c.bitIsMe = 0
+            AND a.bitBestAddress = 1"""
     
-def mergeContacts(contactsToMerge):
+    contacts = [Contact(contact) for contact in db.owlExecuteMany(sql)]
+    
+    return dict([[contact.id, contact] for contact in contacts])
+    
+def mergeContacts(db, contactsToMerge):
     """
         Merges a list of contacts into one.
         
@@ -276,97 +242,95 @@ def mergeContacts(contactsToMerge):
     # Move all addresses to the amalgamated contact
     sql = """
         UPDATE IGNORE cAddress
-        SET intContactId = %s,
+        SET intContactId = ?,
             bitBestAddress = 0
         WHERE intContactId IN (""" + moribundIds + ")"
     
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Remove any addresses that are duplicates
     sql = """
         DELETE FROM cAddress
         WHERE intContactId IN (""" + moribundIds + ")"
     
-    database.execute(sql).close()
+    db.owlExecuteNone(sql)
     
     # Update the amalgamated contact’s surname if it hasn’t got one, but a moribund contact has.
     sql = """
         UPDATE cContact o, cContact n
         SET o.strSurname = n.strSurname
-        WHERE o.intId = %s
+        WHERE o.intId = ?
             AND IFNULL(o.strSurname, '') = ''
             AND IFNULL(n.strSurname, '') != ''
             AND n.bitIsPerson != 0
             AND o.bitIsPerson != 0
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Update the amalgamated contact’s forename if it hasn’t got one, but a moribund contact has.
     sql = """
         UPDATE cContact o, cContact n
         SET o.strForename = n.strForename
-        WHERE o.intId = %s
+        WHERE o.intId = ?
             AND IFNULL(o.strForename, '') = ''
             AND IFNULL(n.strForename, '') != ''
             AND n.bitIsPerson != 0
             AND o.bitIsPerson != 0
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Update the amalgamated contact’s company name if it hasn’t got one, but a moribund contact has.
     sql = """
         UPDATE cContact o, cContact n
         SET o.strCompanyName = n.strCompanyName
-        WHERE o.intId = %s
+        WHERE o.intId = ?
             AND IFNULL(o.strCompanyName, '') = ''
             AND IFNULL(n.strCompanyName, '') != ''
             AND n.bitIsPerson = 0
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Update the amalgamated contact’s type if it hasn’t got one, but a moribund contact has.
     sql = """
         UPDATE cContact o, cContact n
         SET o.bitIsPerson = n.bitIsPerson
-        WHERE o.intId = %s
+        WHERE o.intId = ?
             AND o.bitIsPerson IS NULL
             AND n.bitIsPerson IS NOT NULL
             AND n.intId IN (""" + moribundIds + ")"
             
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Update the recipients of any affected messages to the amalgamated contact.
     sql = """
         UPDATE IGNORE mRecipient
-        SET intContactId = %s
+        SET intContactId = ?
         WHERE intContactId IN (""" + moribundIds + ")"
         
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Remove any duplicate recipients.
     sql = """
         DELETE FROM mRecipient
         WHERE intContactId IN (""" + moribundIds + ")"
     
-    database.execute(sql).close()
+    db.owlExecuteNone(sql)
     
     # Update the senders of any affected messages to the amalgamated contact.
     sql = """
         UPDATE mMessage
-        SET intSenderId = %s
+        SET intSenderId = ?
         WHERE intSenderId IN (""" + moribundIds + ")"
         
-    database.execute(sql, contactsToMerge[0].id).close()
+    db.owlExecuteNone(sql, contactsToMerge[0].id)
     
     # Delete all but the amalgamated contact.    
     sql = """
         DELETE FROM cContact
         WHERE intId IN (""" + moribundIds + ")"
     
-    database.execute(sql).close()
-    
-    refresh()
+    db.owlExecuteNone(sql)
     

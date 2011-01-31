@@ -9,11 +9,12 @@ import contact, message, smsMessage, sqlite
 
 class IPhoneGetter:
     
-    def __init__(self, account, encryptionKey = None):
+    def __init__(self, db, account, encryptionKey = None):
         """
             Creates a new IPhoneGetter, with a user and a dictionary of account details.
             If an encryption key is given, it uses this to encrypt the text messages.
         """
+        self.db = db
         self.account = account
         self.encryptionKey = encryptionKey
         self.needToStop = False
@@ -78,7 +79,7 @@ class IPhoneGetter:
         remoteIds = sqlite.executeManyToDictionary(self.smsConnection, sql)
         
         remoteIds = [row['ROWID'] for row in remoteIds]
-        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.account['intAccountId'], 'iPhone SMS')]
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.db, self.account['intAccountId'], 'iPhone SMS')]
         
         return [msg for msg in remoteIds if storedIds.count(msg) == 0]
     
@@ -113,10 +114,10 @@ class IPhoneGetter:
                 addressType = 'email'
             
             if rowId in addedContacts:
-                newId = contact.addAddressToExitingContact(addedContacts[rowId], addressType, address)
+                newId = contact.addAddressToExitingContact(self.db, addedContacts[rowId], addressType, address)
                 addedContacts[rowId] = newId
             else:
-                contactId = contact.createContact(person['First'], person['Last'], addressType, address)
+                contactId = contact.createContact(self.db, person['First'], person['Last'], addressType, address)
                 addedContacts[rowId] = contactId
     
     def stop(self):
@@ -171,7 +172,7 @@ class IPhoneGetter:
         
         number = self.internationalizeNumber(msg['address'], msg['country'])
         
-        numberId = contact.addEmptyContact('phone', number)
+        numberId = contact.addEmptyContact(self.db, 'phone', number)
         
         if msg['association_id'] == 0:
             senderId = numberId
@@ -181,8 +182,8 @@ class IPhoneGetter:
             recipientId = numberId
         
         
-        messageId = message.store(self.account['intAccountId'], date, senderId, msg['text'], [recipientId], 'iPhone SMS')
+        messageId = message.store(self.db, self.account['intAccountId'], date, senderId, msg['text'], [recipientId], 'iPhone SMS')
         
-        smsMessage.store(messageId, id, msg['text'])
+        smsMessage.store(self.db, messageId, id, msg['text'])
         
         

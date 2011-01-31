@@ -1,5 +1,6 @@
 # coding=utf8
-import database, encryption, login, settings
+import encryption, login, settings
+from sqlite import Sqlite
 from owlExceptions import NotAuthenticatedException
 from messageGetters.imapGetter import ImapGetter
 from messageGetters.iPhoneGetter import IPhoneGetter
@@ -19,6 +20,7 @@ class GatherData:
         
         self.username = username
         self.password = password
+        self.db = Sqlite(self.username)
         
         if not login.checkLogin(self.username, self.password):
             raise NotAuthenticatedException('The username or password was not valid')
@@ -38,10 +40,9 @@ class GatherData:
                 e.strUsername, e.strPassword, a.strUserAddress
             FROM aAccount a
                 INNER JOIN aEmailAccount e ON e.intAccountId = a.intId
-            WHERE a.strUser = %s
-                AND a.enmType = 'imap'"""
+            WHERE a.strType = 'imap'"""
         
-        account = database.executeOneToDictionary(sql, self.username)
+        account = self.db.owlExecuteOne(sql)
         
         if not account:
             return None
@@ -52,7 +53,7 @@ class GatherData:
         
         encryptionKey = settings.settings['userDataEncryptionSalt'] + self.password
         
-        return ImapGetter(account, encryptionKey)
+        return ImapGetter(self.db, account, encryptionKey)
     
     def checkForIPhone(self):
         """
@@ -64,17 +65,16 @@ class GatherData:
                 a.intId AS intAccountId, a.strUserAddress, s.strDefaultCountry
             FROM aAccount a
                 INNER JOIN aSmsAccount s ON s.intAccountId = a.intId
-            WHERE strUser = %s
-                AND enmType = 'iPhone SMS'"""
+            WHERE strType = 'iPhone SMS'"""
         
-        account = database.executeOneToDictionary(sql, self.username)
+        account = self.db.owlExecuteOne(sql)
         
         if not account:
             return None
         
         encryptionKey = settings.settings['userDataEncryptionSalt'] + self.password
         
-        return IPhoneGetter(account, encryptionKey)
+        return IPhoneGetter(self.db, account, encryptionKey)
     
     def countNewMessages(self):
         """

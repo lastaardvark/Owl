@@ -134,5 +134,5 @@ class EditContact(QWidget):
         self.contact.isPerson = self.personRadio.isChecked()
         
         self.contact.update()
-        self.mainWindow.refreshListsLocally()
+        self.mainWindow.refreshLists()
         self.close()
