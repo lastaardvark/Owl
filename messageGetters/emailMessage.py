@@ -9,14 +9,14 @@ import encryption, message, settings
 
 class Email(Message):
     
-    def __init__(self, fields):
+    def __init__(self, db, fields):
         """
             Initializes a new Email using a dictionary
             of database fields.
         """
         fields['strMessageType'] = 'imap'
         
-        Message.__init__(self, fields)
+        Message.__init__(self, db, fields)
         
         encryptionKey = settings.settings['userDataEncryptionSalt'] + message._password
         
@@ -46,8 +46,8 @@ def getEmailFromId(db, messageId):
             strBodyHtml AS strEmailBodyHtml
         FROM mEmail
         WHERE intMessageId = ?"""
-    
-    return Email(sqlite.executeOne(sql, messageId))
+    print messageId
+    return Email(db, db.executeOne(sql, messageId))
     
 def store(db, messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     """

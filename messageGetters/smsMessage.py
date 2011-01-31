@@ -31,10 +31,7 @@ def getSmsFromId(db, messageId):
             s.intMessageId,
             s.intRemoteId AS intSmsRemoteId,
             s.strText AS strSmsText,
-            a.strType AS strMessageType,
-            m.intSenderId,
-            m.datHappened,
-            m.strSummary
+            a.strType AS strMessageType
         FROM mSms s
             INNER JOIN mMessage m ON m.intId = s.intMessageId
             INNER JOIN aAccount a ON a.intId = m.intAccountId

@@ -16,6 +16,21 @@ class Message:
         
         self.id = fields['intMessageId']
         
+        if not 'intSenderId' in fields:
+            
+            sql = """
+                SELECT
+                    intSenderId,
+                    datHappened,
+                    strSummary
+                FROM mMessage
+                WHERE intId = ?"""
+            
+            row = db.executeOne(sql, self.id)
+            fields['intSenderId'] = row['intSenderId']
+            fields['datHappened'] = row['datHappened']
+            fields['strSummary'] = row['strSummary']
+        
         self.sender = contact.getContactFromId(db, fields['intSenderId'])
         self.sentDate = time.strptime(fields['datHappened'], '%Y-%m-%d %H:%M:%S')
         self.summary = fields['strSummary'].replace(u'\n', u'')
