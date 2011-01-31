@@ -11,7 +11,7 @@ import contact
 
 class MergeDialog(QDialog):
     
-    def __init__(self, contacts):
+    def __init__(self, db, contacts):
         """
             This dialog box asks the user whether they really would like to merge
             the given list of contacts. If they agree, the merge is performed.
@@ -19,6 +19,7 @@ class MergeDialog(QDialog):
     	
         QDialog.__init__(self)
         self.contacts = contacts
+        self.db = db
         
         self.resize(250, 60)
         self.setWindowTitle('Merge Contacts?')
@@ -44,6 +45,6 @@ class MergeDialog(QDialog):
             Called when the user has agreed to merge. Perform
             the merge, and declare that the dialog box was accepted.
         """
-        
-        contact.mergeContacts(self.contacts)
+        print self.contacts
+        contact.mergeContacts(self.db, self.contacts)
         self.accept()

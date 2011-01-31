@@ -1,6 +1,6 @@
 # coding=utf8
 
-import os, sqlite3, sys
+import os, sqlite3, sys, time
 from datetime import datetime
 
 sys.path.append(os.path.join(os.getcwd()))
@@ -19,7 +19,7 @@ class IPhoneGetter:
         self.encryptionKey = encryptionKey
         self.needToStop = False
         self.getDatabaseConnections()
-        self.ourId = contact.addEmptyContact('phone', account['strUserAddress'])
+        self.ourId = contact.addEmptyContact(db, 'phone', account['strUserAddress'])
     
     def getDatabaseConnections(self):
     
@@ -67,6 +67,8 @@ class IPhoneGetter:
             Returns the remote IDs of any new messages on the server.
         """
         
+        self.updateContacts()
+        
         if not self.smsConnection:
             return []
         
@@ -100,7 +102,6 @@ class IPhoneGetter:
         addedContacts = {}
         
         for person in contacts:
-            print person
             address = person['value']
             
             rowId = person['ROWID']
@@ -140,6 +141,8 @@ class IPhoneGetter:
             if self.needToStop:
                 break
             
+            time.sleep(0.0001) # Keep GUI thread running smoothly
+            
             self._downloadText(id)
             
             done += 1            
@@ -148,7 +151,7 @@ class IPhoneGetter:
          
         self.smsConnection.close()
         self.contactConnection.close()
-         
+        
     
     def internationalizeNumber(self, number, country):
         

@@ -42,7 +42,7 @@ class GatherData:
                 INNER JOIN aEmailAccount e ON e.intAccountId = a.intId
             WHERE a.strType = 'imap'"""
         
-        account = self.db.owlExecuteOne(sql)
+        account = self.db.executeOne(sql)
         
         if not account:
             return None
@@ -67,7 +67,7 @@ class GatherData:
                 INNER JOIN aSmsAccount s ON s.intAccountId = a.intId
             WHERE strType = 'iPhone SMS'"""
         
-        account = self.db.owlExecuteOne(sql)
+        account = self.db.executeOne(sql)
         
         if not account:
             return None

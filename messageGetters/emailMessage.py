@@ -47,7 +47,7 @@ def getEmailFromId(db, messageId):
         FROM mEmail
         WHERE intMessageId = ?"""
     
-    return Email(sqlite.owlExecuteOne(sql, messageId))
+    return Email(sqlite.executeOne(sql, messageId))
     
 def store(db, messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     """
@@ -60,4 +60,4 @@ def store(db, messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
             (intMessageId, intRemoteId, strSubject, strBodyPlainText, strBodyHtml, strRaw)
         VALUES (%s, %s, %s, %s, %s, %s)"""
     
-    db.owlExecuteNone(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw))
+    db.executeNone(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw))

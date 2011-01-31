@@ -12,19 +12,20 @@ import contact, message, stringFunctions
 
 class EditContact(QWidget):
     
-    def __init__(self, mainWindow, username, contact):
+    def __init__(self, db, mainWindow, username, contact):
         QWidget.__init__(self)
         self.contact = contact
         self.username = username
         self.mainWindow = mainWindow
+        self.db = db
         
         self.resize(400, 300)
         self.setWindowTitle('Edit Contact')
         
         self.addressListLabel = QLabel('Addresses')
         
-        addresses = self.contact.getAddresses()
-        addresses = [("%s: %s" % (address['enmAddressType'], address['strAddress']), address['strAddress']) for address in addresses]
+        addresses = self.contact.getAddresses(self.db)
+        addresses = [("%s: %s" % (address['strAddressType'], address['strAddress']), address['strAddress']) for address in addresses]
         self.addresses = AutoCompleteListBox(self, addresses)
         self.addresses.getLineEdit().hide()
         
@@ -133,6 +134,6 @@ class EditContact(QWidget):
         
         self.contact.isPerson = self.personRadio.isChecked()
         
-        self.contact.update()
+        self.contact.update(self.db)
         self.mainWindow.refreshLists()
         self.close()

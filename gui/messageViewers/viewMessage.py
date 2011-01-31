@@ -1,6 +1,6 @@
 # coding=utf8
 
-import os, sys
+import os, sys, time
 
 sys.path.append(os.path.join(os.getcwd()))
 
@@ -18,7 +18,7 @@ class ViewMessage(QWidget):
         self.setWindowTitle(message.summary)
         
         senderLabel = QLabel(u'Sender: ' + unicode(message.sender))
-        sentLabel = QLabel('Sent: ' + str(message.sentDate))
+        sentLabel = QLabel('Sent: ' + time.strftime('%Y-%m-%d %H:%M:%S', message.sentDate))
         
         grid = QGridLayout()
         grid.setSpacing(10)

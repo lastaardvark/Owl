@@ -112,8 +112,9 @@ class MainWindow(QMainWindow):
         
         self.username = username
         self.password = password
+        message._password = password
         
-        self.sqlite = Sqlite(username)
+        self.db = Sqlite(username)
         
         self.refreshLists()
     
@@ -124,8 +125,8 @@ class MainWindow(QMainWindow):
             has been changed locally.
         """
         
-        contacts = sorted(contact.getContacts(self.sqlite), key = lambda contact: unicode(contact))
-        messages = sorted(message.getMessages(self.sqlite), key = lambda message: unicode(message))
+        contacts = sorted(contact.getContacts(self.db), key = lambda contact: unicode(contact))
+        messages = sorted(message.getMessages(self.db), key = lambda message: unicode(message))
         self.userList.replaceList([(unicode(c), c) for c in contacts])
         self.messageList.replaceList([(unicode(m), m) for m in messages])
         
@@ -153,8 +154,6 @@ class MainWindow(QMainWindow):
             
         if messagesProcessed >= self.progress.maximum():
             self.progress.close()
-        
-        self.refreshLists()
         
     def receiveBroadcastOfDownloadProgress(self, messagesProcessed):
         """
@@ -213,7 +212,7 @@ class MainWindow(QMainWindow):
     	
         contacts = self.userList.getSelectedItems()
         if len(contacts) == 1:
-            self.editContact = EditContact(self, self.username, contacts[0])
+            self.editContact = EditContact(self.db, self, self.username, contacts[0])
             self.editContact.show()
 	
     def showMessage(self):
@@ -227,11 +226,11 @@ class MainWindow(QMainWindow):
             
             if messages[0].type == 'email':
             
-                self.viewMessage = ViewEmail(emailMessage.getEmailFromId(messages[0].id))
+                self.viewMessage = ViewEmail(emailMessage.getEmailFromId(self.db, messages[0].id))
             
             elif messages[0].type == 'SMS':
             
-                self.viewMessage = ViewSms(smsMessage.getSmsFromId(messages[0].id))
+                self.viewMessage = ViewSms(smsMessage.getSmsFromId(self.db, messages[0].id))
                 
             self.viewMessage.show()
     
@@ -248,7 +247,7 @@ class MainWindow(QMainWindow):
         """
             Ask the user whether they want to merge the contacts that are selected in the list box.
         """
-        self.mergeDialog = MergeDialog(self.userList.getSelectedItems())
+        self.mergeDialog = MergeDialog(self.db, self.userList.getSelectedItems())
         self.mergeDialog.accepted.connect(self.refreshLists)
         self.mergeDialog.show()
 	

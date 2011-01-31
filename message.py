@@ -1,10 +1,14 @@
 # coding=utf8
 
+import time
+
 import contact
+
+_password = ''
 
 class Message:
     
-    def __init__(self, fields):
+    def __init__(self, db, fields):
         """
             Initializes a new Message using a dictionary
             of database fields.
@@ -12,9 +16,8 @@ class Message:
         
         self.id = fields['intMessageId']
         
-        self.sender = contact.getContactFromId(fields['intSenderId'])
-        
-        self.sentDate = fields['datHappened']
+        self.sender = contact.getContactFromId(db, fields['intSenderId'])
+        self.sentDate = time.strptime(fields['datHappened'], '%Y-%m-%d %H:%M:%S')
         self.summary = fields['strSummary'].replace(u'\n', u'')
         if fields['strMessageType'] == 'imap':
             self.type = 'email'
@@ -30,10 +33,9 @@ class Message:
             Should be called with unicode(var).
         """
         
-        date = self.sentDate.strftime('%Y-%m-%d %H:%M')
+        date = time.strftime('%Y-%m-%d %H:%M', self.sentDate)
 
         return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
-
 
 def getMessages(db):
     """
@@ -51,7 +53,7 @@ def getMessages(db):
             INNER JOIN mMessage m ON m.intAccountId = ac.intId
         ORDER BY m.datHappened DESC"""
     
-    return [Message(msg) for msg in db.owlExecuteMany(sql)]
+    return [Message(db, msg) for msg in db.executeMany(sql)]
     
     
 
@@ -73,7 +75,7 @@ def getAllRemoteIds(db, accountId, type):
                 INNER JOIN mSms s ON s.intMessageId = m.intId
             WHERE m.intAccountId = ?"""
     
-    return db.owlExecuteMany(sql, accountId)  
+    return db.executeMany(sql, accountId)  
 
 def store(db, accountId, date, senderId, summary, recipientIds, messageType):
     """
@@ -84,14 +86,14 @@ def store(db, accountId, date, senderId, summary, recipientIds, messageType):
         INSERT INTO mMessage (intAccountId, datHappened, intSenderId, strSummary)
         VALUES (?, ?, ?, ?)"""
     
-    messageId = sqlite.owlExecuteNoneReturnId(sql, (accountId, date, senderId, summary))    
+    messageId = db.executeNoneReturnId(sql, (accountId, date, senderId, summary))    
     
     for recipientId in recipientIds:
         if recipientId:
             sql = """
                 REPLACE INTO mRecipient (intMessageId, intContactId)
-                VALUES (%s, %s)"""
+                VALUES (?, ?)"""
             
-            db.owlExecuteNone(sql, (messageId, recipientId))
+            db.executeNone(sql, (messageId, recipientId))
     
     return messageId

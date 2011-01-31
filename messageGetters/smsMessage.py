@@ -9,13 +9,13 @@ import encryption, message, settings
 
 class Sms(Message):
     
-    def __init__(self, fields):
+    def __init__(self, db, fields):
         """
             Initializes a new Sms using a dictionary
             of database fields.
         """
         
-        Message.__init__(self, fields)
+        Message.__init__(self, db, fields)
         
         encryptionKey = settings.settings['userDataEncryptionSalt'] + message._password
         
@@ -31,13 +31,16 @@ def getSmsFromId(db, messageId):
             s.intMessageId,
             s.intRemoteId AS intSmsRemoteId,
             s.strText AS strSmsText,
-            a.enmType AS strMessageType
+            a.strType AS strMessageType,
+            m.intSenderId,
+            m.datHappened,
+            m.strSummary
         FROM mSms s
             INNER JOIN mMessage m ON m.intId = s.intMessageId
             INNER JOIN aAccount a ON a.intId = m.intAccountId
         WHERE s.intMessageId = ?"""
     
-    return Sms(db.owlExecuteOne(sql, messageId))
+    return Sms(db, db.executeOne(sql, messageId))
     
 def store(db, messageId, remoteId, text):
     """
@@ -50,4 +53,4 @@ def store(db, messageId, remoteId, text):
             (intMessageId, intRemoteId, strText)
         VALUES (?, ?, ?)"""
     
-    db.owlExecuteNone(sql, (messageId, remoteId, text))
+    db.executeNone(sql, (messageId, remoteId, text))
