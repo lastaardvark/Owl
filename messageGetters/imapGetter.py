@@ -26,7 +26,7 @@ class ImapGetter:
             Connect and log-into the IMAP server.
         """
         
-        server = ImapEmail(self.account['strEmailAddress'], self.account['strServer'], self.account['intPort'])
+        server = ImapEmail(self.account['strUserAddress'], self.account['strServer'], self.account['intPort'])
         server.login(self.account['strUsername'], self.account['strPassword'])
         return server
         

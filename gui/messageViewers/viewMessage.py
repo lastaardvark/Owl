@@ -38,8 +38,8 @@ class ViewMessage(QWidget):
         self.mainView = QWidget()
         
         grid.addWidget(senderLabel, 0, 0)
-        grid.addWidget(sentLabel, 1, 0)
-        grid.addWidget(recipientsWidget, 2, 0)
+        grid.addWidget(recipientsWidget, 1, 0)
+        grid.addWidget(sentLabel, 2, 0)
         grid.addWidget(self.mainView, 3, 0)
         
         self.setLayout(grid)

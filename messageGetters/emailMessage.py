@@ -58,6 +58,6 @@ def store(db, messageId, remoteId, subject, bodyPlain, bodyHtml, raw):
     sql = """
         INSERT INTO mEmail 
             (intMessageId, intRemoteId, strSubject, strBodyPlainText, strBodyHtml, strRaw)
-        VALUES (%s, %s, %s, %s, %s, %s)"""
+        VALUES (?, ?, ?, ?, ?, ?)"""
     
     db.executeNone(sql, (messageId, remoteId, subject, bodyPlain, bodyHtml, raw))

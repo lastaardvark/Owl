@@ -32,7 +32,6 @@ class GatherData:
         """
             If the user has an IMAP account, it instantiates it.
         """
-        return None
         
         sql = """
             SELECT 
