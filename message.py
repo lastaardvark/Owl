@@ -36,6 +36,16 @@ class Message:
         date = time.strftime('%Y-%m-%d %H:%M', self.sentDate)
 
         return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
+    
+    def getRecipients(self, db):
+        
+        sql = """
+            SELECT intContactId
+            FROM mRecipient
+            WHERE intMessageId = ?"""
+        
+        recipients = db.executeMany(sql, self.id)
+        return [contact.getContactFromId(db, r['intContactId']) for row in recipients]
 
 def getMessages(db):
     """

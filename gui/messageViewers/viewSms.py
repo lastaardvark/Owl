@@ -10,8 +10,8 @@ from viewMessage import ViewMessage
 
 class ViewSms(ViewMessage):
     
-    def __init__(self, sms):
-        ViewMessage.__init__(self, sms)
+    def __init__(self, db, sms):
+        ViewMessage.__init__(self, db, sms)
         self.message = sms
         self.resize(400, 250)
         

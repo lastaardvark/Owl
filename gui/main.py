@@ -226,11 +226,11 @@ class MainWindow(QMainWindow):
             
             if messages[0].type == 'email':
             
-                self.viewMessage = ViewEmail(emailMessage.getEmailFromId(self.db, messages[0].id))
+                self.viewMessage = ViewEmail(self.db, emailMessage.getEmailFromId(self.db, messages[0].id))
             
             elif messages[0].type == 'SMS':
             
-                self.viewMessage = ViewSms(smsMessage.getSmsFromId(self.db, messages[0].id))
+                self.viewMessage = ViewSms(self.db, smsMessage.getSmsFromId(self.db, messages[0].id))
                 
             self.viewMessage.show()
     

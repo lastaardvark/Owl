@@ -10,8 +10,8 @@ from viewMessage import ViewMessage
 
 class ViewEmail(ViewMessage):
     
-    def __init__(self, email):
-        ViewMessage.__init__(self, email)
+    def __init__(self, db, email):
+        ViewMessage.__init__(self, db, email)
         self.message = email
         self.resize(600, 700)
         
