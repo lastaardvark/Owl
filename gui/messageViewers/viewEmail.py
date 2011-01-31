@@ -13,6 +13,7 @@ class ViewEmail(ViewMessage):
     def __init__(self, email):
         ViewMessage.__init__(self, email)
         self.message = email
+        self.resize(600, 700)
         
         subjectLabel = QLabel(u'Subject: ' + self.message.subject)
         

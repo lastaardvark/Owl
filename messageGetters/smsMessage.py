@@ -19,19 +19,9 @@ class Sms(Message):
         
         encryptionKey = settings.settings['userDataEncryptionSalt'] + message._password
         
-        self.remoteId = fields['intEmailRemoteId']
+        self.remoteId = fields['intSmsRemoteId']
         
-        self.subject = fields['strEmailSubject']
-        
-        self.bodyPlain = fields['strEmailBodyPlainText']
-        self.bodyPlain = encryption.decrypt(encryptionKey, self.bodyPlain)
-        
-        self.bodyHtml = fields['strEmailBodyHtml']
-        self.bodyHtml = encryption.decrypt(encryptionKey, self.bodyHtml)
-        
-        if 'strRaw' in fields:
-            self.raw = fields['strRaw']
-            self.raw = encryption.decrypt(encryptionKey, self.raw)
+        self.text = fields['strSmsText']
         
     
 def getSmsFromId(messageId):

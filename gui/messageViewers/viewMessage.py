@@ -15,7 +15,6 @@ class ViewMessage(QWidget):
     def __init__(self, message):
         QWidget.__init__(self)
         self.message = message
-        self.resize(600, 700)
         self.setWindowTitle(message.summary)
         
         senderLabel = QLabel(u'Sender: ' + unicode(message.sender))

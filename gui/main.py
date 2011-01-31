@@ -15,7 +15,8 @@ from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
 from mergeContacts import MergeDialog
 from messageViewers.viewEmail import ViewEmail
-from messageGetters import emailMessage
+from messageViewers.viewSms import ViewSms
+from messageGetters import emailMessage, smsMessage
 
 import contact, message, stringFunctions
 
@@ -231,10 +232,15 @@ class MainWindow(QMainWindow):
         messages = self.messageList.getSelectedItems()
         
         if len(messages) == 1:
-        
+            
             if messages[0].type == 'email':
             
                 self.viewMessage = ViewEmail(emailMessage.getEmailFromId(messages[0].id))
+            
+            elif messages[0].type == 'SMS':
+            
+                self.viewMessage = ViewSms(smsMessage.getSmsFromId(messages[0].id))
+                
             self.viewMessage.show()
     
     def hideOrShowMergeButton(self):
