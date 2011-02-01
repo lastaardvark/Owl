@@ -4,6 +4,7 @@ from sqlite import Sqlite
 from owlExceptions import NotAuthenticatedException
 from messageGetters.imapGetter import ImapGetter
 from messageGetters.iPhoneGetter import IPhoneGetter
+#from messageGetters.chatLogGetter import ChatLogGetter
 
 class GatherData:
     """

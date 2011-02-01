@@ -146,6 +146,12 @@ class Sqlite:
         
         self.connection = sqlite3.connect(file)
         
+        sql = "DROP TABLE IF EXISTS mIMEntry"
+        self.executeNone(sql)
+        
+        sql = "DROP TABLE IF EXISTS mIMConversation"
+        self.executeNone(sql)
+        
         sql = "DROP TABLE IF EXISTS mEmail"
         self.executeNone(sql)
         
@@ -164,7 +170,10 @@ class Sqlite:
         sql = "DROP TABLE IF EXISTS cContact"
         self.executeNone(sql)
         
-        sql = "DROP TABLE IF EXISTS aSmsAccount"
+        sql = "DROP TABLE IF EXISTS aAccount"
+        self.executeNone(sql)
+        
+        sql = "DROP TABLE IF EXISTS aIMAccount"
         self.executeNone(sql)
         
         sql = "DROP TABLE IF EXISTS aEmailAccount"
@@ -204,6 +213,19 @@ class Sqlite:
                 
                 CONSTRAINT aSmsAccount_PK PRIMARY KEY (intAccountId),
                 CONSTRAINT aSmsAccount_aAccount FOREIGN KEY (intAccountId)
+                    REFERENCES aAccount (intId)
+            );"""
+            
+        self.executeNone(sql)
+        
+        sql = """
+            CREATE TABLE aIMAccount (
+                intAccountId      int   NOT NULL,
+                strService        text  NOT NULL,
+                strUsername       text  NOT NULL,
+                
+                CONSTRAINT aIMAccount_PK PRIMARY KEY (intAccountId),
+                CONSTRAINT aIMAccount_aAccount_FK FOREIGN KEY (intAccountId)
                     REFERENCES aAccount (intId)
             );"""
             
@@ -291,6 +313,31 @@ class Sqlite:
                 CONSTRAINT mSms_PK PRIMARY KEY (intMessageId),
                 CONSTRAINT mSms_mMessage_FK FOREIGN KEY (intMessageId)
                     REFERENCES mMessage (intId)
+            );"""
+            
+        self.executeNone(sql)
+        
+        sql = """
+            CREATE TABLE mIMConversation (
+                intMessageId     int    NOT NULL,
+                strRemoteId      text   NOT NULL,
+                
+                CONSTRAINT mIMConversation_PK PRIMARY KEY (intMessageId),
+                CONSTRAINT mIMConversation_mMessage_FK FOREIGN KEY (intMessageId)
+                    REFERENCES mMessage (intId)
+            );"""
+            
+        self.executeNone(sql)
+        
+        sql = """
+            CREATE TABLE mIMEntry (
+                intId             integer PRIMARY KEY AUTOINCREMENT,
+                intMessageId      int     NOT NULL,
+                datSent           text    NOT NULL,
+                intSenderId       int     NOT NULL,
+                
+                CONSTRAINT mIMEntry_mIMConversation_FK FOREIGN KEY (intMessageId)
+                    REFERENCES mIMConversation (intMessageId)
             );"""
             
         self.executeNone(sql)
