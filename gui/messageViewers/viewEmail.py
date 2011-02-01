@@ -21,10 +21,8 @@ class ViewEmail(ViewMessage):
         body = QTextEdit()
         
         if self.message.bodyHtml:
-            print 'html'
             body.insertHtml(self.message.bodyHtml)
         else:
-            print 'plain'
             body.insertPlainText(self.message.bodyPlain)
         
         body.textCursor().setPosition(0)

@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
         self.password = password
         message._password = password
         
-        self.db = Sqlite(username, True)
+        self.db = Sqlite(username)
         
         self.refreshLists()
     
@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         """
             
         self.progress.setValue(messagesProcessed)
-        self.progress.setLabelText('Downloading message %s of %s...' % \
+        self.progress.setLabelText('Downloading message %s of %s.' % \
             (stringFunctions.formatInt(messagesProcessed + 1), stringFunctions.formatInt(self.progress.maximum())))
             
         if messagesProcessed >= self.progress.maximum():
@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
             accounts
         """
         
-        self.progress = QProgressDialog('Looking for messages...', 'Cancel', 0, 10)
+        self.progress = QProgressDialog('Looking for messages.', 'Cancel', 0, 10)
         self.progress.resize(400, 50)
         self.progress.show()
         

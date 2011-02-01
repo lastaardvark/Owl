@@ -180,7 +180,7 @@ class IPhoneGetter:
         if re.match('[a-zA-Z]', number):
             # This is a bit naughty. All we have is an alias, which is not an unique identifier.
             # These are usually companies’ names, however, so duplicate aliases are unlikely.
-            numberId = contact.addEmptyContact(self.db, 'phone', number, number)
+            numberId = contact.addEmptyContact(self.db, 'phone', number, number, 0)
         else:
             numberId = contact.addEmptyContact(self.db, 'phone', number)
         

@@ -107,7 +107,7 @@ class Contact:
         
         db.executeNone(sql, (self.forename, self.surname, self.companyName, self.isPerson, self.id))
 
-def createContact(db, forename, surname, addressType, address, alias=None):
+def createContact(db, forename, surname, addressType, address, alias=None, isPerson=None):
     """
         If the address is unknown, add it. In either case,
         return the address ID.
@@ -131,18 +131,13 @@ def createContact(db, forename, surname, addressType, address, alias=None):
     if result == None:
         
         if forename and surname:
-            
-            sql = """
-                INSERT INTO cContact (strForename, strSurname, bitIsPerson)
-                VALUES (?, ?, 1)"""
-        else:
+            isPerson == 1
         
-            sql = """
-                INSERT INTO cContact (strForename, strSurname)
-                VALUES (?, ?)"""
+        sql = """
+            INSERT INTO cContact (strForename, strSurname, bitIsPerson)
+            VALUES (?, ?, ?)"""        
         
-        
-        contactId = db.executeNoneReturnId(sql, (forename, surname))
+        contactId = db.executeNoneReturnId(sql, (forename, surname, isPerson))
         
         sql = """
             INSERT INTO cAddress (intContactId, strAddressType, strAddress, strAlias, bitBestAddress)
@@ -150,7 +145,17 @@ def createContact(db, forename, surname, addressType, address, alias=None):
         
         db.executeNone(sql, (contactId, addressType, address, alias))
     else:
+        
         contactId = int(result['intContactId'])
+        
+        sql = """
+            UPDATE cContact
+            SET strSurname = IFNULL(strSurname, ?),
+                strForename = IFNULL(strForename, ?),
+                bitIsPerson = IFNULL(bitIsPerson, ?)
+            WHERE intId = ?"""
+        
+        db.executeNone(sql, (surname, forename, isPerson, contactId))
     
     return contactId
 
