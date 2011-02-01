@@ -55,6 +55,8 @@ class AutoCompleteListBox:
         
         self.listModel = self._ListModel(listData, window)
         self.listBox.setModel(self.listModel)
+
+        self.subList = []
         
         self.window.connect(self.lineEdit, SIGNAL("textChanged(QString)"), self._OnTextChanged)
         

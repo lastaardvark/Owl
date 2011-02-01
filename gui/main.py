@@ -5,14 +5,15 @@ import os, sys
 sys.path.append(os.path.join(os.getcwd()))
 
 from PyQt4.QtGui import QAbstractItemView, QAction, QApplication, QGridLayout, QFrame, QIcon
-from PyQt4.QtGui import QLabel, QLineEdit, QListView, QMainWindow, QProgressDialog, QPushButton
-from PyQt4.QtGui import QWidget
+from PyQt4.QtGui import QLabel, QLineEdit, QListView, QMainWindow, QProgressDialog
+from PyQt4.QtGui import QPushButton, QWidget
 from PyQt4.QtCore import Qt, SIGNAL, SLOT
 from threading import Thread
 from loginBox import LoginBox
 from editContact import EditContact
 from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
+from messageListBox import MessageListBox
 from mergeContacts import MergeDialog
 from messageViewers.viewEmail import ViewEmail
 from messageViewers.viewSms import ViewSms
@@ -65,12 +66,12 @@ class MainWindow(QMainWindow):
         messageLabel = QLabel('Messages')
         
         self.userList = AutoCompleteListBox(self, [])
-        self.messageList = AutoCompleteListBox(self, [])
+        self.messageList = MessageListBox(self, [])
         
         box = self.userList.getListBox()
         box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         box.doubleClicked.connect(self.showEditContact)
-        box.clicked.connect(self.hideOrShowMergeButton)
+        box.clicked.connect(self.contactListClicked)
         
         self.messageList.getListBox().doubleClicked.connect(self.showMessage)
         
@@ -234,7 +235,7 @@ class MainWindow(QMainWindow):
                 
             self.viewMessage.show()
     
-    def hideOrShowMergeButton(self):
+    def contactListClicked(self):
         """
             Enables or disables the merge button, depending on whether or not
             two or more contacts are selected, respectively.
@@ -242,6 +243,11 @@ class MainWindow(QMainWindow):
         
         contacts = self.userList.getSelectedItems()
         self.mergeButton.setEnabled(contacts != None and len(contacts) > 1)
+        
+        if contacts != None and len(contacts) == 1:
+            self.messageList.filterByContact(contacts[0])
+        else:
+            self.messageList.removeFilter()
 
     def mergeContacts(self):
         """
