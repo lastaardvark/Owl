@@ -124,7 +124,7 @@ class IPhoneGetter:
     def stop(self):
         self.needToStop = True
         
-    def downloadNewMessages(self, ids = None, progressBroadcaster = None):
+    def downloadNewMessages(self, ids = None, progressBroadcaster = None, startId = 0):
         """
             Download any new messages from the server.
             If the remote IDs are already known, they can be passed in as ids.
@@ -135,7 +135,7 @@ class IPhoneGetter:
         if not ids:
             ids = self.getNewMessageIds()
         
-        done = 0
+        done = startId
         for id in ids:
         
             if self.needToStop:
@@ -151,6 +151,8 @@ class IPhoneGetter:
          
         self.smsConnection.close()
         self.contactConnection.close()
+        
+        return done
         
     
     def internationalizeNumber(self, number, country):

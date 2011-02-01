@@ -43,7 +43,7 @@ class ImapGetter:
 
         return [msg for msg in serverIds if storedIds.count(msg) == 0]
         
-    def downloadNewMessages(self, ids = None, progressBroadcaster = None):
+    def downloadNewMessages(self, ids = None, progressBroadcaster = None, startId = 0):
         """
             Download any new messages from the server.
             If the remote IDs are already known, they can be passed in as ids.
@@ -56,7 +56,7 @@ class ImapGetter:
         
         server = self._connect()
         
-        done = 0
+        done = startId
         for id in ids:
         
             if self.needToStop:
@@ -69,6 +69,8 @@ class ImapGetter:
                 progressBroadcaster(done)
                 
         server.logout()
+        
+        return done
     
 
     def _downloadEmail(self, id, server):

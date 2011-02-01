@@ -97,12 +97,14 @@ class GatherData:
             Downloads the new messages of all the users’s accounts, and stores them
             in the database.
         """
+        done = 0
         
-        if self.imapGetter:
-            self.imapGetter.downloadNewMessages(self.imapIds, progressBroadcaster)
-            
         if self.iPhoneGetter:
-            self.iPhoneGetter.downloadNewMessages(self.iPhoneTextIds, progressBroadcaster)
+            done = self.iPhoneGetter.downloadNewMessages(self.iPhoneTextIds, progressBroadcaster, done)
+            
+        if self.imapGetter:
+            self.imapGetter.downloadNewMessages(self.imapIds, progressBroadcaster, done)
+            
     
     def stop(self):
         """

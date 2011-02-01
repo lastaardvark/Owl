@@ -130,9 +130,17 @@ def createContact(db, forename, surname, addressType, address, alias=None):
     
     if result == None:
         
-        sql = """
-            INSERT INTO cContact (strForename, strSurname)
-            VALUES (?, ?)"""
+        if forename and surname:
+            
+            sql = """
+                INSERT INTO cContact (strForename, strSurname, bitIsPerson)
+                VALUES (?, ?, 1)"""
+        else:
+        
+            sql = """
+                INSERT INTO cContact (strForename, strSurname)
+                VALUES (?, ?)"""
+        
         
         contactId = db.executeNoneReturnId(sql, (forename, surname))
         
@@ -174,6 +182,7 @@ def addAddressToExitingContact(db, contactId, addressType, address, alias = None
     if result:
         if int(result['intContactId']) != int(contactId):
             print "Merging contacts"
+            
             mergeContacts(db, [getContactFromId(db, result['intContactId']), getContactFromId(db, contactId)])
             return result['intContactId']
     else:
@@ -243,9 +252,10 @@ def mergeContacts(db, contactsToMerge):
     toThrow = contactsToMerge[1:]
     toKeep = contactsToMerge[0]
     
+    
     for moribund in toThrow:
         if moribund.isPerson != None and toKeep.isPerson == None:
-            toKeep = moribund.isPerson
+            toKeep.isPerson = moribund.isPerson
     
     for moribund in toThrow:
         if moribund.isPerson != 0 and toKeep.isPerson != 0:
