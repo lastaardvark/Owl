@@ -1,6 +1,6 @@
 # coding=utf8
 
-import os, sqlite3, sys, time
+import os, re, sqlite3, sys, time
 from datetime import datetime
 
 sys.path.append(os.path.join(os.getcwd()))
@@ -177,7 +177,12 @@ class IPhoneGetter:
         
         number = self.internationalizeNumber(msg['address'], msg['country'])
         
-        numberId = contact.addEmptyContact(self.db, 'phone', number)
+        if re.match('[a-zA-Z]', number)
+            # This is a bit naughty. All we have is an alias, which is not an unique identifier.
+            # These are usually companies’ names, however, so duplicate aliases are unlikely.
+            numberId = contact.addEmptyContact(self.db, 'phone', number, number)
+        else:
+            numberId = contact.addEmptyContact(self.db, 'phone', number)
         
         if msg['flags'] == 2:
             senderId = numberId

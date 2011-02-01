@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
         self.password = password
         message._password = password
         
-        self.db = Sqlite(username)
+        self.db = Sqlite(username, True)
         
         self.refreshLists()
     
