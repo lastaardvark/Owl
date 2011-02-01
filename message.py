@@ -20,10 +20,17 @@ class Message:
             
             sql = """
                 SELECT
-                    intSenderId,
-                    datHappened,
-                    strSummary
-                FROM mMessage
+                    m.intSenderId,
+                    m.datHappened,
+                    m.strSummary,
+                    r.intOnlyRecipient
+                FROM mMessage m
+                    LEFT JOIN (
+                        SELECT intMessageId, MIN(intContactId) AS intOnlyRecipient
+                        FROM mRecipient
+                        GROUP BY intMessageId
+                        HAVING COUNT(*) =1
+                    ) r ON r.intMessageId = m.intId
                 WHERE intId = ?"""
             
             row = db.executeOne(sql, self.id)
@@ -41,6 +48,11 @@ class Message:
         
         if len(self.summary) > 77:
             self.summary = self.summary[:77] + '...'
+        
+        if 'intOnlyRecipient' in fields and fields['intOnlyRecipient']:
+            self.recipients = [contact.getContactFromId(db, fields['intOnlyRecipient'])]
+        else:
+            self.recipients = self.getRecipients(db)
 
     def __str__(self):
         """
@@ -49,8 +61,17 @@ class Message:
         """
         
         date = time.strftime('%Y-%m-%d %H:%M', self.sentDate)
-
-        return u'%s, %s: %s' % (date, unicode(self.sender), self.summary)
+        
+        origin = ''
+        
+        if self.sender.isMe and len(self.recipients) == 1:
+            origin = u'to ' + unicode(self.recipients[0])
+        elif self.sender.isMe and len(self.recipients) > 1:
+            origin = u'to ' + unicode(self.recipients[0]) + u'...'
+        else:
+            origin = u'from ' + unicode(self.sender)
+        
+        return u'%s, %s: %s' % (date, origin, self.summary)
     
     def getRecipients(self, db):
         
@@ -73,9 +94,16 @@ def getMessages(db):
             m.intId AS intMessageId,
             m.strSummary, m.datHappened,
             ac.strType AS strMessageType,
-            m.intSenderId
+            m.intSenderId,
+            r.intOnlyRecipient
         FROM aAccount ac
             INNER JOIN mMessage m ON m.intAccountId = ac.intId
+            LEFT JOIN (
+                SELECT intMessageId, MIN(intContactId) AS intOnlyRecipient
+                FROM mRecipient
+                GROUP BY intMessageId
+                HAVING COUNT(*) =1
+            ) r ON r.intMessageId = m.intId
         ORDER BY m.datHappened DESC"""
     
     return [Message(db, msg) for msg in db.executeMany(sql)]

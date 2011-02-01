@@ -34,6 +34,9 @@ class Contact:
                 self.isPerson = False
             # Otherwise leave as None
         
+        if 'bitContactIsMe' in fields:
+            self.isMe = fields['bitContactIsMe']
+        
         self.addresses = []
         
         if 'strContactBestAddress' in fields:
@@ -195,6 +198,7 @@ def getContactFromId(db, id):
             c.strSurname AS strContactSurname,
             c.strCompanyName AS strContactCompanyName,
             CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
+            c.bitIsMe AS bitContactIsMe,
             a.strAddress AS strContactBestAddress,
             a.strAlias AS strContactBestAlias
         FROM cContact c
@@ -215,6 +219,7 @@ def getContacts(db):
             c.strSurname AS strContactSurname,
             c.strCompanyName AS strContactCompanyName,
             CAST(c.bitIsPerson AS unsigned) AS bitContactIsPerson,
+            c.bitIsMe AS bitContactIsMe,
             a.strAddress AS strContactBestAddress,
             a.strAlias AS strContactBestAlias
         FROM cContact c
