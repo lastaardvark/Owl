@@ -168,7 +168,7 @@ class IPhoneGetter:
     def _downloadText(self, id):
         
         sql = """
-            SELECT address, date, text, country, association_id
+            SELECT address, date, text, country, flags
             FROM message
             WHERE ROWID = ?;"""
 
@@ -179,7 +179,7 @@ class IPhoneGetter:
         
         numberId = contact.addEmptyContact(self.db, 'phone', number)
         
-        if msg['association_id'] == 0:
+        if msg['flags'] == 2:
             senderId = numberId
             recipientId = self.ourId
         else:
