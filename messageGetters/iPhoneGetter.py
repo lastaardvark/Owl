@@ -14,12 +14,11 @@ class IPhoneGetter:
             Creates a new IPhoneGetter, with a user and a dictionary of account details.
             If an encryption key is given, it uses this to encrypt the text messages.
         """
-        self.db = db
         self.account = account
         self.encryptionKey = encryptionKey
         self.needToStop = False
         self.getDatabaseConnections()
-        self.ourId = contact.addEmptyContact(db, 'phone', account['strUserAddress'])
+        self.ourId = contact.addEmptyContact(db, 'phone', account.userAddress)
     
     def getDatabaseConnections(self):
     
@@ -42,7 +41,7 @@ class IPhoneGetter:
                             
                             found = cur.fetchone()[0]
                             if found == 4:
-                                self.smsConnection = con
+                                self.smsFile = filePath
                                 
                             cur.close()
                             
@@ -55,21 +54,21 @@ class IPhoneGetter:
                             
                             found = cur.fetchone()[0]
                             if found == 4:
-                                self.contactConnection = con
+                                self.contactFile = filePath
                                 
                             cur.close()
                         except sqlite3.DatabaseError, error: # Not an sqlite file.
                             pass
     
     
-    def getNewMessageIds(self):
+    def getNewMessageIds(self, db):
         """
             Returns the remote IDs of any new messages on the server.
         """
         
-        self.updateContacts()
+        self.updateContacts(db)
         
-        if not self.smsConnection:
+        if not self.smsFile:
             return []
         
         sql = """
@@ -78,17 +77,23 @@ class IPhoneGetter:
                 AND text IS NOT NULL
             ORDER BY ROWID;"""
         
-        remoteIds = sqlite.executeManyToDictionary(self.smsConnection, sql)
+        connection = sqlite3.connect(self.smsFile)
+        
+        remoteIds = sqlite.executeManyToDictionary(connection, sql)
         
         remoteIds = [row['ROWID'] for row in remoteIds]
-        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(self.db, self.account['intAccountId'], 'iPhone SMS')]
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(db, self.account.id, 'iPhone SMS')]
         
-        return [msg for msg in remoteIds if storedIds.count(msg) == 0]
+        self.idsToFetch = [msg for msg in remoteIds if storedIds.count(msg) == 0]
+        
+        connection.close()
     
-    def updateContacts(self):
+    def updateContacts(self, db):
         
-        if not self.contactConnection:
+        if not self.contactFile:
             return
+        
+        connection = sqlite3.connect(self.contactFile)
         
         sql = """
             SELECT p.ROWID, p.First, p.Last, mv.property, mv.value
@@ -97,7 +102,7 @@ class IPhoneGetter:
             WHERE mv.property IN (3, 4) -- Phone, Email
             ORDER BY p.ROWID"""
         
-        contacts = sqlite.executeManyToDictionary(self.contactConnection, sql)
+        contacts = sqlite.executeManyToDictionary(connection, sql)
         
         addedContacts = {}
         
@@ -110,21 +115,23 @@ class IPhoneGetter:
                 address = address.replace(' ', '')
                 address = address.replace('(', '').replace(')', '')
                 address = address.replace('-', '')
-                address = self.internationalizeNumber(address, self.account['strDefaultCountry'])
+                address = self.internationalizeNumber(address, self.account.defaultCountry)
             elif person['property'] == 4:
                 addressType = 'email'
             
             if rowId in addedContacts:
-                newId = contact.addAddressToExitingContact(self.db, addedContacts[rowId], addressType, address)
+                newId = contact.addAddressToExitingContact(db, addedContacts[rowId], addressType, address)
                 addedContacts[rowId] = newId
             else:
-                contactId = contact.createContact(self.db, person['First'], person['Last'], addressType, address)
+                contactId = contact.createContact(db, person['First'], person['Last'], addressType, address)
                 addedContacts[rowId] = contactId
     
+        connection.close()
+        
     def stop(self):
         self.needToStop = True
         
-    def downloadNewMessages(self, ids = None, progressBroadcaster = None, startId = 0):
+    def downloadNewMessages(self, db, progressBroadcaster = None):
         """
             Download any new messages from the server.
             If the remote IDs are already known, they can be passed in as ids.
@@ -132,27 +139,28 @@ class IPhoneGetter:
             message is stored.
         """
         
-        if not ids:
-            ids = self.getNewMessageIds()
+        if not self.idsToFetch:
+            self.getNewMessageIds()
         
-        done = startId
-        for id in ids:
+        self.idsToFetch.sort(reverse=True) # Do oldest first.
         
+        connection = sqlite3.connect(self.smsFile)
+        
+        while len(self.idsToFetch) > 0:
+            
             if self.needToStop:
                 break
             
+            id = self.idsToFetch.pop()
+            
             time.sleep(0.0001) # Keep GUI thread running smoothly
             
-            self._downloadText(id)
+            self._downloadText(db, id, connection)
             
-            done += 1            
             if progressBroadcaster and not self.needToStop:
-                progressBroadcaster(done)
-         
-        self.smsConnection.close()
-        self.contactConnection.close()
-        
-        return done
+                progressBroadcaster(len(self.idsToFetch))
+
+        connection.close()
         
     
     def internationalizeNumber(self, number, country):
@@ -165,14 +173,14 @@ class IPhoneGetter:
         
         return number
     
-    def _downloadText(self, id):
+    def _downloadText(self, db, id, smsConnection):
         
         sql = """
             SELECT address, date, text, country, flags
             FROM message
             WHERE ROWID = ?;"""
 
-        msg = sqlite.executeOneToDictionary(self.smsConnection, sql, id)
+        msg = sqlite.executeOneToDictionary(smsConnection, sql, id)
         date = datetime.fromtimestamp(msg['date'])
         
         number = self.internationalizeNumber(msg['address'], msg['country'])
@@ -180,9 +188,9 @@ class IPhoneGetter:
         if re.match('[a-zA-Z]', number):
             # This is a bit naughty. All we have is an alias, which is not an unique identifier.
             # These are usually companies’ names, however, so duplicate aliases are unlikely.
-            numberId = contact.addEmptyContact(self.db, 'phone', number, number, 0)
+            numberId = contact.addEmptyContact(db, 'phone', number, number, 0)
         else:
-            numberId = contact.addEmptyContact(self.db, 'phone', number)
+            numberId = contact.addEmptyContact(db, 'phone', number)
         
         if msg['flags'] == 2:
             senderId = numberId
@@ -192,8 +200,8 @@ class IPhoneGetter:
             recipientId = numberId
         
         
-        messageId = message.store(self.db, self.account['intAccountId'], date, senderId, msg['text'], [recipientId], 'iPhone SMS')
+        messageId = message.store(db, self.account.id, date, senderId, msg['text'], [recipientId], 'iPhone SMS')
         
-        smsMessage.store(self.db, messageId, id, msg['text'])
+        smsMessage.store(db, messageId, id, msg['text'])
         
         

@@ -34,13 +34,10 @@ class MainWindow(QMainWindow):
         exit.setStatusTip('Exit application')
         self.connect(exit, SIGNAL('triggered()'), SLOT('close()'))
         
-        regatherData = QAction('Regather data', self)
-        regatherData.setStatusTip('Regather all data')
-        self.connect(regatherData, SIGNAL('triggered()'), self.downloadNewMessages)
-    
         menubar = self.menuBar()
         file = menubar.addMenu('&File')
-        file.addAction(regatherData)
+        self.getMessagesMenu = file.addMenu('&Get Messages')
+        
         file.addAction(exit)
         
         toolbar = self.addToolBar('Exit')
@@ -117,7 +114,11 @@ class MainWindow(QMainWindow):
         
         self.db = Sqlite(username)
         
+        self.gatherData = GatherData(self.username, self.password)
+        
         self.refreshLists()
+        
+        self.refreshGetMessagesWindow()
     
     def refreshLists(self):
         """
@@ -131,24 +132,38 @@ class MainWindow(QMainWindow):
         self.userList.replaceList([(unicode(c), c) for c in contacts])
         self.messageList.replaceList([(unicode(m), m) for m in messages])
         
-    
-    def setProgressBarMaximum(self, maximum):
-        """
-            We call this when we know how many messages to download.
-            It sets the maximum of the progress bar, and changes the label text.
-        """
+    def refreshGetMessagesWindow(self):
         
-        self.progress.setMaximum(maximum)
-        noun = maximum == 1 and 'message' or 'messages'
+        self.getMessagesMenu.clear()
         
-        self.progress.setLabelText('Found ' + stringFunctions.formatInt(maximum) + ' ' + noun)
+        self.gatherData.refreshNewMessageCounts(self.db)
+        
+        messageCounts = self.gatherData.getAllNewMessageCounts()
+        
+        for count in messageCounts:
+            action = QAction(count['type'] + '  (' + str(count['number']) + ')', self)
+            
+            if count['type'] == 'All':
+                tip = 'Get all new messages.'
+            else:
+                tip = 'Get new ' + count['type'] + ' messages.'
+            
+            action.setStatusTip(tip)
+            
+            self.getMessagesMenu.addAction(action)
+            
+            receiver = lambda type=count['type']: self.downloadNewMessages(type)
+            
+            self.connect(action, SIGNAL('triggered()'), receiver)
+            
     
-    def updateProgressBar(self, messagesProcessed):
+    def updateProgressBar(self, messagesLeft):
         """
             We call this when we’ve downloaded a message. We advance the bar’s progress,
             and update the label text. 
         """
-            
+        
+        messagesProcessed = self.progress.maximum() - messagesLeft
         self.progress.setValue(messagesProcessed)
         self.progress.setLabelText('Downloading message %s of %s.' % \
             (stringFunctions.formatInt(messagesProcessed + 1), stringFunctions.formatInt(self.progress.maximum())))
@@ -170,36 +185,28 @@ class MainWindow(QMainWindow):
         
         self.gatherData.stop()
     
-    def fetchMessagesThread(self):
-        """
-            This is the main method of the thread to download messages.
-            It first determines how many messages there are to download, and
-            emits a signal to update the GUI. It then downloads the messages
-            and emits a signal to refresh the lists.
-        """
+    def fetchMessagesThread(self, type):
         
-        self.gatherData = GatherData(self.username, self.password)
-        
-        newMessageCount = self.gatherData.countNewMessages()
-        self.emit(SIGNAL('receivedMessageCount(PyQt_PyObject)'), newMessageCount)
-        
-        self.gatherData.getNewMessages(self.receiveBroadcastOfDownloadProgress)
+        self.gatherData.getNewMessages(type, self.receiveBroadcastOfDownloadProgress)
         
         self.emit(SIGNAL('refreshLists()'))
         
-    def downloadNewMessages(self):
+    def downloadNewMessages(self, messageType):
         """
             Starts a thread that downloads all the new messages for the user’s
             accounts
         """
         
-        self.progress = QProgressDialog('Looking for messages.', 'Cancel', 0, 10)
+        newMessageCount = self.gatherData.countNewMessages(messageType)
+        noun = newMessageCount == 1 and 'message' or 'messages'
+        
+        self.progress = QProgressDialog(str(newMessageCount) + ' ' + noun + ' to download.', 'Cancel', 0, 10)
         self.progress.resize(400, 50)
+        self.progress.setMaximum(newMessageCount)
         self.progress.show()
         
-        thread = Thread(None, self.fetchMessagesThread, 'Fetch messages')
+        thread = Thread(target=self.fetchMessagesThread, name='Fetch messages', args=(messageType,))
         
-        self.connect(self, SIGNAL('receivedMessageCount(PyQt_PyObject)'), self.setProgressBarMaximum)
         self.connect(self, SIGNAL('updateProgressBar(PyQt_PyObject)'), self.updateProgressBar)
         self.connect(self, SIGNAL('refreshLists()'), self.refreshLists)
         self.connect(self.progress, SIGNAL('canceled()'), self.cancelMessageRetrieval) 

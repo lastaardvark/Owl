@@ -1,5 +1,5 @@
 # coding=utf8
-import encryption, login, settings
+import account, login, settings
 from sqlite import Sqlite
 from owlExceptions import NotAuthenticatedException
 from messageGetters.imapGetter import ImapGetter
@@ -20,101 +20,104 @@ class GatherData:
         """
         
         self.username = username
-        self.password = password
-        self.db = Sqlite(self.username)
+        db = Sqlite(self.username)
         
-        if not login.checkLogin(self.username, self.password):
+        self.accountDecriptionKey = settings.settings['userPasswordEncryptionSalt'] + password
+        self.encryptionKey = settings.settings['userDataEncryptionSalt'] + password
+        
+        if not login.checkLogin(username, password):
             raise NotAuthenticatedException('The username or password was not valid')
         
-        self.imapGetter = self.checkForImap()
-        self.iPhoneGetter = self.checkForIPhone()
+        self.imapGetters = self.checkForImap(db)
+        self.iPhoneGetters = self.checkForIPhone(db)
+        
+        db.close()
     
-    def checkForImap(self):
+    def checkForImap(self, db):
         """
             If the user has an IMAP account, it instantiates it.
         """
         
-        sql = """
-            SELECT 
-                e.intAccountId, e.strServer, e.intPort, 
-                e.strUsername, e.strPassword, a.strUserAddress
-            FROM aAccount a
-                INNER JOIN aEmailAccount e ON e.intAccountId = a.intId
-            WHERE a.strType = 'imap'"""
+        accounts = account.getImapAccounts(db, self.accountDecriptionKey)
         
-        account = self.db.executeOne(sql)
+        if accounts:
+            return [ImapGetter(imap, self.encryptionKey) for imap in accounts]
         
-        if not account:
-            return None
-        
-        # Decrypt account password
-        password = settings.settings['userPasswordEncryptionSalt'] + self.password
-        account['strPassword'] = encryption.decrypt(password, str(account['strPassword']))
-        
-        encryptionKey = settings.settings['userDataEncryptionSalt'] + self.password
-        
-        return ImapGetter(self.db, account, encryptionKey)
+        return None
     
-    def checkForIPhone(self):
+    def checkForIPhone(self, db):
         """
             If the user has an iPhone account, it instantiates it.
         """
         
-        sql = """
-            SELECT 
-                a.intId AS intAccountId, a.strUserAddress, s.strDefaultCountry
-            FROM aAccount a
-                INNER JOIN aSmsAccount s ON s.intAccountId = a.intId
-            WHERE strType = 'iPhone SMS'"""
+        accounts = account.getSmsAccounts(db)
         
-        account = self.db.executeOne(sql)
+        if accounts:
+            return [IPhoneGetter(db, iPhone, self.encryptionKey) for iPhone in accounts]
         
-        if not account:
-            return None
-        
-        encryptionKey = settings.settings['userDataEncryptionSalt'] + self.password
-        
-        return IPhoneGetter(self.db, account, encryptionKey)
+        return None
     
-    def countNewMessages(self):
-        """
-            Returns the number of new messages accross the users’s accounts
-        """
+    def refreshNewMessageCounts(self, db):
         
-        if self.imapGetter:
-            self.imapIds = self.imapGetter.getNewMessageIds()
-        else:
-            self.imapIds = []
-            
-        if self.iPhoneGetter:
-            self.iPhoneTextIds = self.iPhoneGetter.getNewMessageIds()
-        else:
-            self.iPhoneTextIds = []
+        for getter in self.imapGetters:
+            getter.getNewMessageIds(db)
         
-        return len(self.imapIds) + len(self.iPhoneTextIds)
+        for getter in self.iPhoneGetters:
+            getter.getNewMessageIds(db)
     
-    def getNewMessages(self, progressBroadcaster = None):
+    def getAllNewMessageCounts(self):
+        
+        imapCount = 0
+        iPhoneCount = 0
+        
+        for getter in self.imapGetters:
+            imapCount += len(getter.idsToFetch)
+
+        for getter in self.iPhoneGetters:
+            iPhoneCount += len(getter.idsToFetch)
+        
+        total = imapCount + iPhoneCount
+        
+        return [
+            {'type': 'IMAP', 'number': imapCount},
+            {'type': 'iPhone', 'number': iPhoneCount},
+            {'type': 'All', 'number': total}]
+    
+    def countNewMessages(self, type = 'All'):
+        
+        allTypes = self.getAllNewMessageCounts()
+        
+        for eachType in allTypes:
+            if eachType['type'] == type:
+                return eachType['number']
+        
+    
+    def getNewMessages(self, type = 'All', progressBroadcaster = None):
         """
             Downloads the new messages of all the users’s accounts, and stores them
             in the database.
         """
-        done = 0
         
-        if self.iPhoneGetter:
-            done = self.iPhoneGetter.downloadNewMessages(self.iPhoneTextIds, progressBroadcaster, done)
-            
-        if self.imapGetter:
-            self.imapGetter.downloadNewMessages(self.imapIds, progressBroadcaster, done)
-            
+        db = Sqlite(self.username)
+        
+        if type in ('All', 'iPhone'):
+            for getter in self.iPhoneGetters:
+                getter.downloadNewMessages(db, progressBroadcaster)
+        
+        if type in ('All', 'IMAP'):
+            if getter in self.imapGetters:
+                getter.downloadNewMessages(db, progressBroadcaster)
+                
+        db.close()
     
     def stop(self):
         """
             Stops downloading messages (after the current message has been stored)
         """
         
-        if self.imapGetter:
-            self.imapGetter.stop()
-        
-        if self.iPhoneGetter:
-            self.iPhoneGetter.stop()
+        for getter in self.imapGetters:
+            getter.stop()
+            
+        for getter in self.iPhoneGetters:
+            getter.stop()
     

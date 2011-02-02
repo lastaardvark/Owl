@@ -159,8 +159,8 @@ def createContact(db, forename, surname, addressType, address, alias=None, isPer
     
     return contactId
 
-def addEmptyContact(db, addressType, address, alias=None):
-    return createContact(db, None, None, addressType, address, alias)
+def addEmptyContact(db, addressType, address, alias=None, isPerson=None):
+    return createContact(db, None, None, addressType, address, alias, isPerson)
 
 def addAddressToExitingContact(db, contactId, addressType, address, alias = None):
     """

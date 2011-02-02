@@ -176,6 +176,9 @@ class Sqlite:
         sql = "DROP TABLE IF EXISTS aIMAccount"
         self.executeNone(sql)
         
+        sql = "DROP TABLE IF EXISTS aSmsAccount"
+        self.executeNone(sql)
+        
         sql = "DROP TABLE IF EXISTS aEmailAccount"
         self.executeNone(sql)
         
