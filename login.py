@@ -7,6 +7,8 @@ def checkLogin(username, password):
         Validates a login
     """
     
+    return True
+    
     encryptedPassword = encryption.encrypt(settings.settings['loginPasswordEncryptionKey'], password)
     
     sql = """

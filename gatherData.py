@@ -4,7 +4,7 @@ from sqlite import Sqlite
 from owlExceptions import NotAuthenticatedException
 from messageGetters.imapGetter import ImapGetter
 from messageGetters.iPhoneGetter import IPhoneGetter
-#from messageGetters.chatLogGetter import ChatLogGetter
+from messageGetters.imGetter import IMGetter
 
 class GatherData:
     """
@@ -30,6 +30,7 @@ class GatherData:
         
         self.imapGetters = self.checkForImap(db)
         self.iPhoneGetters = self.checkForIPhone(db)
+        self.imLogGetter = self.checkForIMLogs(db)
         
         db.close()
     
@@ -57,6 +58,11 @@ class GatherData:
         
         return None
     
+    def checkForIMLogs(self, db):
+        
+        if settings.knownIMLogPaths:
+            return IMGetter(db, self.encryptionKey)
+    
     def refreshNewMessageCounts(self, db):
         
         for getter in self.imapGetters:
@@ -64,24 +70,39 @@ class GatherData:
         
         for getter in self.iPhoneGetters:
             getter.getNewMessageIds(db)
-    
+        
+        if self.imLogGetter:
+            self.imLogGetter.getNewMessageIds(db)
+        
     def getAllNewMessageCounts(self):
         
         imapCount = 0
         iPhoneCount = 0
+        imLogCount = 0
+        
+        rtn = []
         
         for getter in self.imapGetters:
             imapCount += len(getter.idsToFetch)
+        
+        if self.imapGetters:
+            rtn.append({'type': 'IMAP emails', 'number': imapCount})
 
         for getter in self.iPhoneGetters:
             iPhoneCount += len(getter.idsToFetch)
         
-        total = imapCount + iPhoneCount
+        if self.iPhoneGetters:
+            rtn.append({'type': 'iPhone messages', 'number': iPhoneCount})
+            
+        if self.imLogGetter:
+            imLogCount = len(self.imLogGetter.idsToFetch)
+            rtn.append({'type': 'IM logs', 'number': imLogCount})
+            
+        total = imapCount + iPhoneCount + imLogCount
         
-        return [
-            {'type': 'IMAP', 'number': imapCount},
-            {'type': 'iPhone', 'number': iPhoneCount},
-            {'type': 'All', 'number': total}]
+        rtn.append({'type': 'All', 'number': total})
+        
+        return rtn
     
     def countNewMessages(self, type = 'All'):
         
@@ -90,7 +111,6 @@ class GatherData:
         for eachType in allTypes:
             if eachType['type'] == type:
                 return eachType['number']
-        
     
     def getNewMessages(self, type = 'All', progressBroadcaster = None):
         """
@@ -100,12 +120,16 @@ class GatherData:
         
         db = Sqlite(self.username)
         
-        if type in ('All', 'iPhone'):
+        if type in ('All', 'iPhone messages'):
             for getter in self.iPhoneGetters:
                 getter.downloadNewMessages(db, progressBroadcaster)
         
-        if type in ('All', 'IMAP'):
-            if getter in self.imapGetters:
+        if type in ('All', 'IM logs'):
+            if self.imLogGetter:
+                self.imLogGetter.downloadNewConversations(db, progressBroadcaster)
+        
+        if type in ('All', 'IMAP emails'):
+            for getter in self.imapGetters:
                 getter.downloadNewMessages(db, progressBroadcaster)
                 
         db.close()
@@ -120,4 +144,7 @@ class GatherData:
             
         for getter in self.iPhoneGetters:
             getter.stop()
+        
+        if self.imLogGetter:
+            self.imLogGetter.stop()
     

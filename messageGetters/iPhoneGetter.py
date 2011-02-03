@@ -82,7 +82,7 @@ class IPhoneGetter:
         remoteIds = sqlite.executeManyToDictionary(connection, sql)
         
         remoteIds = [row['ROWID'] for row in remoteIds]
-        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(db, self.account.id, 'iPhone SMS')]
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(db, 'iPhone SMS', self.account.id)]
         
         self.idsToFetch = [msg for msg in remoteIds if storedIds.count(msg) == 0]
         
@@ -120,7 +120,7 @@ class IPhoneGetter:
                 addressType = 'email'
             
             if rowId in addedContacts:
-                newId = contact.addAddressToExitingContact(db, addedContacts[rowId], addressType, address)
+                newId = contact.addAddressToExistingContact(db, addedContacts[rowId], addressType, address)
                 addedContacts[rowId] = newId
             else:
                 contactId = contact.createContact(db, person['First'], person['Last'], addressType, address)
@@ -138,9 +138,6 @@ class IPhoneGetter:
             If a progressBroadcaster function is specified, it will be called after each
             message is stored.
         """
-        
-        if not self.idsToFetch:
-            self.getNewMessageIds()
         
         self.idsToFetch.sort(reverse=True) # Do oldest first.
         

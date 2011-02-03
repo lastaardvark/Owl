@@ -17,8 +17,6 @@ class Sms(Message):
         
         Message.__init__(self, db, fields)
         
-        encryptionKey = settings.settings['userDataEncryptionSalt'] + message._password
-        
         self.remoteId = fields['intSmsRemoteId']
         
         self.text = fields['strSmsText']

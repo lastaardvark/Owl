@@ -18,7 +18,7 @@ class ViewMessage(QWidget):
         self.setWindowTitle(message.summary)
         self.db = db
         
-        senderLabel = QLabel(u'Sender: ' + unicode(message.sender))
+        self.senderLabel = QLabel(u'Sender: ' + unicode(message.sender))
         sentLabel = QLabel('Sent: ' + time.strftime('%Y-%m-%d %H:%M:%S', message.sentDate))
         
         recipients = message.getRecipients(db)
@@ -29,7 +29,7 @@ class ViewMessage(QWidget):
             recipients = [(unicode(recipient), recipient) for recipient in recipients]
             acl = AutoCompleteListBox(self, recipients)
             acl.getLineEdit().hide()
-            recipientsWidget = acl.getListBox()
+            self.recipientsWidget = acl.getListBox()
         
         grid = QGridLayout()
         grid.setSpacing(10)
@@ -37,8 +37,8 @@ class ViewMessage(QWidget):
         # To be overridden by child classes.
         self.mainView = QWidget()
         
-        grid.addWidget(senderLabel, 0, 0)
-        grid.addWidget(recipientsWidget, 1, 0)
+        grid.addWidget(self.senderLabel, 0, 0)
+        grid.addWidget(self.recipientsWidget, 1, 0)
         grid.addWidget(sentLabel, 2, 0)
         grid.addWidget(self.mainView, 3, 0)
         

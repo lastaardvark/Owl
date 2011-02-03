@@ -38,7 +38,7 @@ class ImapGetter:
         serverIds = [msgId for msgId in server.getMailIds()]
         server.logout()
         
-        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(db, self.account.id, 'imap')]
+        storedIds = [int(msg['intRemoteId']) for msg in message.getAllRemoteIds(db, 'imap', self.account.id)]
 
         self.idsToFetch = [msg for msg in serverIds if storedIds.count(msg) == 0]
 
@@ -49,9 +49,6 @@ class ImapGetter:
             If a progressBroadcaster function is specified, it will be called after each
             message is stored.
         """
-        
-        if not self.idsToFetch:
-            self.idsToFetch = self.getNewMessageIds()
         
         self.idsToFetch.sort(reverse=True) # Do oldest first.
         

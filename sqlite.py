@@ -338,6 +338,7 @@ class Sqlite:
                 intMessageId      int     NOT NULL,
                 datSent           text    NOT NULL,
                 intSenderId       int     NOT NULL,
+                strText           text    NOT NULL,
                 
                 CONSTRAINT mIMEntry_mIMConversation_FK FOREIGN KEY (intMessageId)
                     REFERENCES mIMConversation (intMessageId)

@@ -162,7 +162,37 @@ def createContact(db, forename, surname, addressType, address, alias=None, isPer
 def addEmptyContact(db, addressType, address, alias=None, isPerson=None):
     return createContact(db, None, None, addressType, address, alias, isPerson)
 
-def addAddressToExitingContact(db, contactId, addressType, address, alias = None):
+def addAddressToMe(db, addressType, address, alias = None):
+    
+    sql = """
+        SELECT intId
+        FROM cContact
+        WHERE bitIsMe = 1"""
+    
+    result = db.executeOne(sql)
+    
+    if result:
+        
+        return addAddressToExistingContact(db, result['intId'], addressType, address, alias)
+    
+    else:
+    
+        sql = """
+            INSERT INTO cContact (bitIsPerson, bitIsMe)
+            VALUES (1, 1)"""
+        
+        contactId = db.executeNoneReturnId(sql)
+        
+        sql = """
+            INSERT INTO cAddress (intContactId, strAddressType, strAddress, strAlias, bitBestAddress)
+            VALUES (?, ?, ?, ?, 1)"""
+        
+        db.executeNone(sql, (contactId, addressType, address, alias))
+        
+        return contactId
+        
+
+def addAddressToExistingContact(db, contactId, addressType, address, alias = None):
     """
         Adds the given address to the given contact. This addition may cause
         the contact to merge with another (if the address is already known).
@@ -283,7 +313,7 @@ def mergeContacts(db, contactsToMerge):
             bitBestAddress = 0
         WHERE intContactId IN (""" + moribundIds + ")"
     
-    db.executeNone(sql, contactsToMerge[0].id)
+    db.executeNone(sql, toKeep.id)
     
     # Remove any addresses that are duplicates
     sql = """
@@ -298,7 +328,7 @@ def mergeContacts(db, contactsToMerge):
         SET intContactId = ?
         WHERE intContactId IN (""" + moribundIds + ")"
         
-    db.executeNone(sql, contactsToMerge[0].id)
+    db.executeNone(sql, toKeep.id)
     
     # Remove any duplicate recipients.
     sql = """
@@ -313,7 +343,7 @@ def mergeContacts(db, contactsToMerge):
         SET intSenderId = ?
         WHERE intSenderId IN (""" + moribundIds + ")"
         
-    db.executeNone(sql, contactsToMerge[0].id)
+    db.executeNone(sql, toKeep.id)
     
     # Delete all but the amalgamated contact.    
     sql = """

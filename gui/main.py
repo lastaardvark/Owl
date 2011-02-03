@@ -17,7 +17,8 @@ from messageListBox import MessageListBox
 from mergeContacts import MergeDialog
 from messageViewers.viewEmail import ViewEmail
 from messageViewers.viewSms import ViewSms
-from messageGetters import emailMessage, smsMessage
+from messageViewers.viewConversation import ViewConversation
+from messageGetters import imConversation, emailMessage, smsMessage
 from sqlite import Sqlite
 
 import contact, message, stringFunctions
@@ -51,7 +52,6 @@ class MainWindow(QMainWindow):
         
         QMainWindow.__init__(self)
         self.setWindowTitle('Owl')
-        #self.resize()
         self.setGeometry(10, 10, 1100, 800)
         
         self.status = self.statusBar()
@@ -141,6 +141,7 @@ class MainWindow(QMainWindow):
         messageCounts = self.gatherData.getAllNewMessageCounts()
         
         for count in messageCounts:
+            
             action = QAction(count['type'] + '  (' + str(count['number']) + ')', self)
             
             if count['type'] == 'All':
@@ -239,6 +240,10 @@ class MainWindow(QMainWindow):
             elif messages[0].type == 'SMS':
             
                 self.viewMessage = ViewSms(self.db, smsMessage.getSmsFromId(self.db, messages[0].id))
+                
+            elif messages[0].type == 'IM':
+            
+                self.viewMessage = ViewConversation(self.db, imConversation.getIMConversationFromId(self.db, messages[0].id))
                 
             self.viewMessage.show()
     

@@ -45,6 +45,8 @@ class Message:
             self.type = 'email'
         elif fields['strMessageType'] == 'iPhone SMS':
             self.type = 'SMS'
+        elif fields['strMessageType'] == 'IM':
+            self.type = 'IM'
         
         if len(self.summary) > 77:
             self.summary = self.summary[:77] + '...'
@@ -110,7 +112,7 @@ def getMessages(db):
     
     
 
-def getAllRemoteIds(db, accountId, type):
+def getAllRemoteIds(db, type, accountId=None):
     """
         Returns a list of all the remote IDs for an account.
         This is useful for determining which messages on the server are new.
@@ -127,6 +129,13 @@ def getAllRemoteIds(db, accountId, type):
             FROM mMessage m
                 INNER JOIN mSms s ON s.intMessageId = m.intId
             WHERE m.intAccountId = ?"""
+    elif type == 'IM':
+        sql = """
+            SELECT c.strRemoteId
+            FROM mMessage m
+                INNER JOIN mIMConversation c ON c.intMessageId = m.intId
+                INNER JOIN aAccount a ON a.intId = m.intAccountId
+            WHERE a.strType = 'IM'"""
     
     return db.executeMany(sql, accountId)  
 
@@ -144,9 +153,17 @@ def store(db, accountId, date, senderId, summary, recipientIds, messageType):
     for recipientId in recipientIds:
         if recipientId:
             sql = """
-                REPLACE INTO mRecipient (intMessageId, intContactId)
+                INSERT OR IGNORE INTO mRecipient (intMessageId, intContactId)
                 VALUES (?, ?)"""
             
             db.executeNone(sql, (messageId, recipientId))
     
     return messageId
+
+def addRecipient(db, messageId, recipientId):
+    
+    sql = """
+        INSERT OR IGNORE INTO mRecipient (intMessageId, intContactId)
+        VALUES (?, ?)"""
+    
+    db.executeNone(sql, (messageId, recipientId))
