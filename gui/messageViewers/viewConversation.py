@@ -41,14 +41,13 @@ class ViewConversation(ViewMessage):
             
             body.insertHtml(row)
         
-        """
         participants = u'Participants: '
         
-        for participant, _ in senders:
-            participants += unicode(participant) + u', '
+        for id in senders:
+            participants += unicode(senders[id][0]) + u', '
         
         self.senderLabel.setText(participants[:-2])
-        """
+        
         body.setReadOnly(True)
         self.recipientsWidget.hide()
         
