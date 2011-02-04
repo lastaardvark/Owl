@@ -21,6 +21,8 @@ class ViewConversation(ViewMessage):
         
         senders = {}
         
+        maxDate = self.message.sentDate
+        
         body = QTextEdit()
         for entry in self.message.entries:
             
@@ -32,8 +34,15 @@ class ViewConversation(ViewMessage):
                 colour = self.getNextColour()
                 senders[senderId] = (sender, colour)
             
+            dateSent = entry['datSent']
+            
+            if dateSent > maxDate:
+                maxDate = dateSent
+            
+            dateSent = time.strftime('%Y-%m-%d %H:%M:%S', self.message.sentDate)
+            
             sender = u"<b style='color: " + unicode(colour) + u"'>" + unicode(sender) + u'</b>: '
-            sent = u'<i>' + unicode(entry['datSent']) + u'</i>:'
+            sent = u'<i>' + unicode(dateSent) + u'</i>:'
             
             row = sender + sent + u'<br/>' + entry['strText'] + u'<br/>'
             
@@ -47,6 +56,8 @@ class ViewConversation(ViewMessage):
             participants += unicode(senders[id][0]) + u', '
         
         self.senderLabel.setText(participants[:-2])
+        self.sentLabel.setText('Between ' + time.strftime('%Y-%m-%d %H:%M:%S', self.message.sentDate) + \
+            ' and ' + time.strftime('%Y-%m-%d %H:%M:%S', maxDate))
         
         body.setReadOnly(True)
         self.recipientsWidget.hide()

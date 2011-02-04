@@ -4,6 +4,7 @@ import os, sys
 
 sys.path.append(os.path.join(os.getcwd()))
 
+import time
 from message import Message
 import encryption, message, settings
 
@@ -32,6 +33,9 @@ class IMConversation(Message):
                 ORDER BY datSent"""
             
             self.entries = db.executeMany(sql, self.id)
+            
+            for entry in self.entries:
+                entry['datSent'] = time.strptime(entry['datSent'], '%Y-%m-%d %H:%M:%S')
             
         return self.entries
     

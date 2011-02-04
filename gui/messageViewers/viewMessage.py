@@ -19,7 +19,7 @@ class ViewMessage(QWidget):
         self.db = db
         
         self.senderLabel = QLabel(u'Sender: ' + unicode(message.sender))
-        sentLabel = QLabel('Sent: ' + time.strftime('%Y-%m-%d %H:%M:%S', message.sentDate))
+        self.sentLabel = QLabel('Sent: ' + time.strftime('%Y-%m-%d %H:%M:%S', message.sentDate))
         
         recipients = message.getRecipients(db)
         
@@ -39,7 +39,7 @@ class ViewMessage(QWidget):
         
         grid.addWidget(self.senderLabel, 0, 0)
         grid.addWidget(self.recipientsWidget, 1, 0)
-        grid.addWidget(sentLabel, 2, 0)
+        grid.addWidget(self.sentLabel, 2, 0)
         grid.addWidget(self.mainView, 3, 0)
         
         self.setLayout(grid)

@@ -64,9 +64,13 @@ class Message:
         
         date = time.strftime('%Y-%m-%d %H:%M', self.sentDate)
         
-        origin = ''
-        
-        if self.sender.isMe and len(self.recipients) == 1:
+        origin = u''
+        if self.type == 'IM':
+            for recipient in self.recipients:
+                origin += unicode(recipient) + u', '
+            
+            origin = origin[:-2]
+        elif self.sender.isMe and len(self.recipients) == 1:
             origin = u'to ' + unicode(self.recipients[0])
         elif self.sender.isMe and len(self.recipients) > 1:
             origin = u'to ' + unicode(self.recipients[0]) + u'...'
