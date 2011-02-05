@@ -28,7 +28,9 @@ class IMGetter:
             availableIds += self.parseDirectory(path, path, [])
         storedIds = message.getAllRemoteIds(db, 'IM')
         
-        self.idsToFetch = [path for path in availableIds if storedIds.count(path[1]) == 0]
+        storedIds = [unicode(id['strRemoteId']) for id in storedIds]
+        
+        self.idsToFetch = [path for path in availableIds if storedIds.count(unicode(path[1])) == 0]
     
     def parseDirectory(self, root, currentDirectory, idsSoFar=[]):
         
@@ -50,15 +52,21 @@ class IMGetter:
         line1 = file.readline()
         line2 = file.readline()
         file.close()
-        if line2.startswith('<chat xmlns="http://purl.org/net/ulf/ns/0.'):
-            return 'Adium'
+        #if line2 and line2.startswith('<chat xmlns="http://purl.org/net/ulf/ns/0.'):
+        #    return 'Adium'
+        if not line2 \
+            and line1.startswith('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body style=') \
+            and filePath.find('Messenger ') != -1:
+            return 'MSN'
         
         return None
         
     def stop(self):
         self.needToStop = True
         
-    def downloadNewConversations(self, db, progressBroadcaster = None):
+    def downloadNewConversations(self, db, questionAsker, progressBroadcaster = None):
+        
+        self.questionAsker = questionAsker
         
         self.idsToFetch.sort(reverse=True) # Bias towards doing oldest first.
         
@@ -78,6 +86,8 @@ class IMGetter:
         path = os.path.join(root, id)
         if self.getFileType(path) == 'Adium':            
             self._processAdiumLog(db, path, id)
+        if self.getFileType(path) == 'MSN':            
+            self._processMsnLog(db, path, id)
     
     def _processAdiumLog(self, db, path, id):
         
@@ -130,3 +140,100 @@ class IMGetter:
                         message.addRecipient(db, messageId, contactId)
                     
                     imConversation.addEntry(db, messageId, sentTime, contactId, text)
+
+    def _processMsnLog(self, db, path, id):
+        
+        file = open(path, 'r')
+        line = file.readline()
+        file.close()
+        print id
+        # Make valid XML
+        line = line.replace('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">', '')
+        line = line.replace('<br>', '')
+        line = line.replace('&nbsp;', '')
+        
+        writeFile = open(path + '_temp', 'w')
+        writeFile.write(line)
+        writeFile.close()
+                
+        xml = etree.parse(path + '_temp')
+        root = xml.getroot()
+        body = root.getchildren()[1]
+        
+        paragraphs = body.getchildren()
+        
+        firstLine = paragraphs[0].text
+        to = firstLine[4:firstLine.find('Start Time')]
+        start = firstLine[firstLine.find('Start Time: ') + len('Start Time: '):]
+        start = start[:start.find(';')]
+        
+        substring = id[id.rfind('Messenger ') + len('Messenger '): ]
+        date = substring[ : 10]
+        
+        participant = substring[1: substring.rfind('.htm')]
+        
+        def findAllAliases(paragraphs):
+            aliases = []
+            for paragraph in paragraphs:
+                if paragraph.text and paragraph.text.find(' says: (') != -1:
+                    alias = paragraph.text[: paragraph.text.find(' says: (')]
+                    if not alias in aliases:
+                        aliases.append(alias)
+            return aliases
+        
+        aliases = findAllAliases(paragraphs)
+        
+        if len(aliases) > 2:
+            print aliases
+            print 'MSN conversations with more than 2 participants have not been properly thought about yet.'
+            return
+        
+        question = 'An MSN log is ambiguous about which of the following aliases is you,\nand which is '
+        question += to + '.\nPlease click on the alias that is you.'
+        
+        
+        self.answer = None
+        self.questionAsker(aliases, 'Interpreting an IM Log', question, self.receiveAnswer)
+        
+        while not self.answer and not self.needToStop:
+            time.sleep(1)
+        
+        ourAlias = self.answer
+        theirAlias = [alias for alias in aliases if alias != ourAlias][0]
+        
+        accountId, ourContactId = account.createIMAccount(db, 'MSN', 'Unknown')
+        theirContactId = contact.addEmptyContact(db, 'IM', to, theirAlias)
+        
+        messageId = None
+        
+        i = 1
+        while i < len(paragraphs):
+            line1 = paragraphs[i].text
+            if not line1 or line1.find(' says: (') == -1:
+                i+= 1  # Skip over another "To... Start Time..." line if the window was shut
+            else:
+                alias = line1[: line1.find(' says: (')]
+                timeReceived = line1[line1.rfind('(') + 1: line1.rfind(')')]
+                timeReceived = datetime(*time.strptime(date + ' ' + timeReceived, '%d.%m.%Y %H:%M:%S')[0:6])
+                
+                i += 1
+                text = paragraphs[i].text
+                i += 1
+                
+                if text:
+                    if not messageId:
+                        messageId = message.store(db, accountId, timeReceived, ourContactId, text + u'...', [ourContactId, theirContactId], 'IM')
+                        imConversation.store(db, messageId, id)
+                    
+                    if alias == ourAlias:
+                        contactId = ourContactId
+                    else:
+                        contactId = theirContactId
+                    
+                    imConversation.addEntry(db, messageId, timeReceived, contactId, text)
+            
+        
+        os.remove(path + '_temp')
+    
+    def receiveAnswer(self, answer):
+        self.answer = answer

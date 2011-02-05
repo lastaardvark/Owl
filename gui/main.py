@@ -15,6 +15,7 @@ from gatherData import GatherData
 from autoCompleteListBox import AutoCompleteListBox
 from messageListBox import MessageListBox
 from mergeContacts import MergeDialog
+from dialogBox import DialogBox
 from messageViewers.viewEmail import ViewEmail
 from messageViewers.viewSms import ViewSms
 from messageViewers.viewConversation import ViewConversation
@@ -100,7 +101,7 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.mergeButton, 3, 0)
                 
         centralWidget.setLayout(grid)
-        
+    
     def giveCredentials(self, username, password):
         """
             This happens once the user has successfully logged in. We store
@@ -188,10 +189,17 @@ class MainWindow(QMainWindow):
     
     def fetchMessagesThread(self, type):
         
-        self.gatherData.getNewMessages(type, self.receiveBroadcastOfDownloadProgress)
+        self.gatherData.getNewMessages(self.receiveQuestion, type, self.receiveBroadcastOfDownloadProgress)
         
         self.emit(SIGNAL('refreshLists()'))
-        
+    
+    def receiveQuestion(self, options, title, text, resultReceiver):
+        self.emit(SIGNAL('askUserAQuestion(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)'), \
+            options, title, text, resultReceiver)
+    
+    def askUserAQuestion(self, options, title, text, resultReceiver):
+        self.dialog = DialogBox(options, title, text, resultReceiver)
+    
     def downloadNewMessages(self, messageType):
         """
             Starts a thread that downloads all the new messages for the user’s
@@ -211,6 +219,7 @@ class MainWindow(QMainWindow):
         self.connect(self, SIGNAL('updateProgressBar(PyQt_PyObject)'), self.updateProgressBar)
         self.connect(self, SIGNAL('refreshLists()'), self.refreshLists)
         self.connect(self.progress, SIGNAL('canceled()'), self.cancelMessageRetrieval) 
+        self.connect(self, SIGNAL('askUserAQuestion(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)'), self.askUserAQuestion) 
         
         thread.start()
     

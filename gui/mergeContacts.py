@@ -6,7 +6,6 @@ sys.path.append(os.path.join(os.getcwd()))
 
 from PyQt4.QtGui import QGridLayout, QPushButton, QDialog
 
-from autoCompleteListBox import AutoCompleteListBox
 import contact
 
 class MergeDialog(QDialog):

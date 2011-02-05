@@ -6,6 +6,8 @@ from messageGetters.imapGetter import ImapGetter
 from messageGetters.iPhoneGetter import IPhoneGetter
 from messageGetters.imGetter import IMGetter
 
+from PyQt4.QtCore import SIGNAL
+
 class GatherData:
     """
         A class to gather data from all the accounts of a user
@@ -112,12 +114,11 @@ class GatherData:
             if eachType['type'] == type:
                 return eachType['number']
     
-    def getNewMessages(self, type = 'All', progressBroadcaster = None):
+    def getNewMessages(self, questionAsker, type = 'All', progressBroadcaster = None):
         """
             Downloads the new messages of all the users’s accounts, and stores them
             in the database.
         """
-        
         db = Sqlite(self.username)
         
         if type in ('All', 'iPhone messages'):
@@ -126,7 +127,7 @@ class GatherData:
         
         if type in ('All', 'IM logs'):
             if self.imLogGetter:
-                self.imLogGetter.downloadNewConversations(db, progressBroadcaster)
+                self.imLogGetter.downloadNewConversations(db, questionAsker, progressBroadcaster)
         
         if type in ('All', 'IMAP emails'):
             for getter in self.imapGetters:

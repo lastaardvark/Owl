@@ -190,7 +190,6 @@ def addAddressToMe(db, addressType, address, alias = None):
         db.executeNone(sql, (contactId, addressType, address, alias))
         
         return contactId
-        
 
 def addAddressToExistingContact(db, contactId, addressType, address, alias = None):
     """
@@ -321,6 +320,14 @@ def mergeContacts(db, contactsToMerge):
         WHERE intContactId IN (""" + moribundIds + ")"
     
     db.executeNone(sql)
+    
+    # Update the recipients of any affected messages to the amalgamated contact.
+    sql = """
+        UPDATE mIMEntry
+        SET intSenderId = ?
+        WHERE intSenderId IN (""" + moribundIds + ")"
+        
+    db.executeNone(sql, toKeep.id)
     
     # Update the recipients of any affected messages to the amalgamated contact.
     sql = """
