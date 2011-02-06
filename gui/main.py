@@ -16,6 +16,7 @@ from autoCompleteListBox import AutoCompleteListBox
 from messageListBox import MessageListBox
 from mergeContacts import MergeDialog
 from dialogBox import DialogBox
+from multiselectionDialogBox import MultiselectionDialogBox
 from messageViewers.viewEmail import ViewEmail
 from messageViewers.viewSms import ViewSms
 from messageViewers.viewConversation import ViewConversation
@@ -113,7 +114,7 @@ class MainWindow(QMainWindow):
         self.password = password
         message._password = password
         
-        self.db = Sqlite(username)
+        self.db = Sqlite(username, True)
         
         self.gatherData = GatherData(self.username, self.password)
         
@@ -193,12 +194,15 @@ class MainWindow(QMainWindow):
         
         self.emit(SIGNAL('refreshLists()'))
     
-    def receiveQuestion(self, options, title, text, resultReceiver):
-        self.emit(SIGNAL('askUserAQuestion(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)'), \
-            options, title, text, resultReceiver)
+    def receiveQuestion(self, options, title, text, resultReceiver, multiAnswer = False):
+        self.emit(SIGNAL('askUserAQuestion(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)'), \
+            options, title, text, resultReceiver, multiAnswer)
     
-    def askUserAQuestion(self, options, title, text, resultReceiver):
-        self.dialog = DialogBox(options, title, text, resultReceiver)
+    def askUserAQuestion(self, options, title, text, resultReceiver, multiAnswer):
+        if multiAnswer:        
+            self.dialog = MultiselectionDialogBox(options, title, text, resultReceiver)
+        else:
+            self.dialog = DialogBox(options, title, text, resultReceiver)
     
     def downloadNewMessages(self, messageType):
         """
@@ -219,7 +223,7 @@ class MainWindow(QMainWindow):
         self.connect(self, SIGNAL('updateProgressBar(PyQt_PyObject)'), self.updateProgressBar)
         self.connect(self, SIGNAL('refreshLists()'), self.refreshLists)
         self.connect(self.progress, SIGNAL('canceled()'), self.cancelMessageRetrieval) 
-        self.connect(self, SIGNAL('askUserAQuestion(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)'), self.askUserAQuestion) 
+        self.connect(self, SIGNAL('askUserAQuestion(PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject, PyQt_PyObject)'), self.askUserAQuestion) 
         
         thread.start()
     

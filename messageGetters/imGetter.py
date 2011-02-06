@@ -183,23 +183,26 @@ class IMGetter:
         
         aliases = findAllAliases(paragraphs)
         
-        if len(aliases) > 2:
-            print aliases
-            print 'MSN conversations with more than 2 participants have not been properly thought about yet.'
-            return
-        
-        question = 'An MSN log is ambiguous about which of the following aliases is you,\nand which is '
-        question += to + '.\nPlease click on the alias that is you.'
-        
-        
         self.answer = None
-        self.questionAsker(aliases, 'Interpreting an IM Log', question, self.receiveAnswer)
+        
+        if len(aliases) > 2:
+            question = 'An MSN log is ambiguous about which of the following aliases is you,\nand which is '
+            question += to + '.\nPlease select all the aliases that are you.'
+        else:
+            question = 'An MSN log is ambiguous about which of the following aliases is you,\nand which is '
+            question += to + '.\nPlease click on the alias that is you.'
+        
+        
+        self.questionAsker(aliases, 'Interpreting an IM Log', question, self.receiveAnswer, len(aliases) > 2)
         
         while not self.answer and not self.needToStop:
             time.sleep(1)
         
-        ourAlias = self.answer
-        theirAlias = [alias for alias in aliases if alias != ourAlias][0]
+        if type(self.answer) != type([]):
+            self.answer = [self.answer]
+        ourAliases = self.answer
+        
+        theirAlias = [alias for alias in aliases if alias not in self.answer][0]
         
         accountId, ourContactId = account.createIMAccount(db, 'MSN', 'Unknown')
         theirContactId = contact.addEmptyContact(db, 'IM', to, theirAlias)
@@ -225,7 +228,7 @@ class IMGetter:
                         messageId = message.store(db, accountId, timeReceived, ourContactId, text + u'...', [ourContactId, theirContactId], 'IM')
                         imConversation.store(db, messageId, id)
                     
-                    if alias == ourAlias:
+                    if alias in ourAliases:
                         contactId = ourContactId
                     else:
                         contactId = theirContactId
