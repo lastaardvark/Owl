@@ -40,6 +40,8 @@ class IMGetter:
                 idsSoFar = self.parseDirectory(root, path, idsSoFar)
             elif item == '.DS_Store':
                 pass
+            elif item.endswith('_temp'):
+                pass
             elif self.getFileType(path):
                 idsSoFar.append((root, path.replace(root, '')))
         
@@ -52,13 +54,16 @@ class IMGetter:
         line1 = file.readline()
         line2 = file.readline()
         file.close()
-        #if line2 and line2.startswith('<chat xmlns="http://purl.org/net/ulf/ns/0.'):
-        #    return 'Adium'
-        if not line2 \
-            and line1.startswith('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body style=') \
+        if line2 and line2.startswith('<chat xmlns="http://purl.org/net/ulf/ns/0.'):
+            return 'Adium'
+        elif line1.startswith('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body style=') \
             and filePath.find('Messenger ') != -1:
             return 'MSN'
-        
+        #else:
+        #    print ''
+        #    print 'Unknown type:'
+        #    print filePath
+            
         return None
         
     def stop(self):
@@ -91,7 +96,18 @@ class IMGetter:
     
     def _processAdiumLog(self, db, path, id):
         
-        xml = etree.parse(path)
+        file = open(path, 'r')
+        line = file.read()
+        file.close()
+        
+        # Line breaks confuse things later on.
+        line = line.replace('<br />', '&lt;br /&gt;')
+        
+        writeFile = open(path + '_temp', 'w')
+        writeFile.write(line)
+        writeFile.close()
+        
+        xml = etree.parse(path + '_temp')
         root = xml.getroot()
         
         username = ''
@@ -128,9 +144,10 @@ class IMGetter:
                 
                 wrapper = child.getchildren()[0]
                 node = wrapper.getchildren()[0]
-                text = node.text
                 
-                if text:
+                if node.text:
+                    text = node.text.replace('&lt;br /&gt;', '\n')
+    
                     if not storedConversation:
                         messageId = message.store(db, accountId, sentTime, ourContactId, text + u'...', [ourContactId], 'IM')
                         imConversation.store(db, messageId, id)
@@ -140,12 +157,14 @@ class IMGetter:
                         message.addRecipient(db, messageId, contactId)
                     
                     imConversation.addEntry(db, messageId, sentTime, contactId, text)
+        
+        os.remove(path + '_temp')
 
     def _processMsnLog(self, db, path, id):
         
         file = open(path, 'r')
-        line = file.readline()
-        file.close()
+        line = file.read()
+        
         print id
         # Make valid XML
         line = line.replace('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">', '')
@@ -234,7 +253,6 @@ class IMGetter:
                         contactId = theirContactId
                     
                     imConversation.addEntry(db, messageId, timeReceived, contactId, text)
-            
         
         os.remove(path + '_temp')
     
